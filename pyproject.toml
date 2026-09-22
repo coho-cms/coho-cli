@@ -1,0 +1,47 @@
+# Workspace root. Not a package itself: the two distributions live under packages/.
+#   packages/coho-sdk   -> the `coho_sdk` library (importable on its own)
+#   packages/coho-cli   -> the `coho` command, a thin layer over coho_sdk
+[project]
+name = "coho-workspace"
+version = "0.0.0"
+description = "Workspace for the Coho management SDK and CLI"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+coho-sdk = { workspace = true }
+coho-cli = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "coho-sdk",
+    "coho-cli",
+    "pytest>=8.3",
+    "pytest-httpserver>=1.1",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["packages/coho-sdk/src", "packages/coho-cli/src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "packages/coho-sdk/src:packages/coho-cli/src"
+packages = ["coho_sdk", "coho_cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["packages/coho-sdk/tests", "packages/coho-cli/tests"]
+addopts = "-q"

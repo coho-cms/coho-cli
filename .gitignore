@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# coho-cli
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.ndjson
+*.tar
