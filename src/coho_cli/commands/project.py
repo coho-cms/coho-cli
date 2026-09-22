@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 import typer
-
-from coho_sdk.models import ProjectInfo
+from coho_management_sdk.models import ProjectInfo
 
 from .._output import console, record, say, table
 from .._state import State, Usage, get_state

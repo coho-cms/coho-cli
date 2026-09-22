@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import typer
-
-from coho_sdk.models import ACCOUNT_ROLES
+from coho_management_sdk.models import ACCOUNT_ROLES
 
 from .._output import console, record, say, secret_once, table
 from .._state import Usage, get_state

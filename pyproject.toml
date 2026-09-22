@@ -1,29 +1,64 @@
-# Workspace root. Not a package itself: the two distributions live under packages/.
-#   packages/coho-sdk   -> the `coho_sdk` library (importable on its own)
-#   packages/coho-cli   -> the `coho` command, a thin layer over coho_sdk
 [project]
-name = "coho-workspace"
-version = "0.0.0"
-description = "Workspace for the Coho management SDK and CLI"
+name = "coho-cli"
+version = "0.1.0"
+description = "The coho command: manage Coho accounts, projects, branches, releases and content from a terminal."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
-dependencies = []
+authors = [{ name = "Coho" }]
+keywords = ["coho", "cms", "headless", "cli", "content"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "coho-management-sdk>=0.1.0,<0.2",
+    "typer>=0.12",
+    "rich>=13.7",
+    "keyring>=25",
+]
 
-[tool.uv]
-package = false
+[project.scripts]
+coho = "coho_cli.main:main"
 
-[tool.uv.workspace]
-members = ["packages/*"]
+[project.urls]
+Homepage = "https://github.com/coho-cms/coho-cli"
+Source = "https://github.com/coho-cms/coho-cli"
+Documentation = "https://github.com/coho-cms/coho-cli/tree/main/docs"
+Changelog = "https://github.com/coho-cms/coho-cli/blob/main/CHANGELOG.md"
+Issues = "https://github.com/coho-cms/coho-cli/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/coho_cli"]
 
 [tool.uv.sources]
-coho-sdk = { workspace = true }
-coho-cli = { workspace = true }
+# Develop against a sibling checkout of the library:
+#   git clone https://github.com/coho-cms/coho-management-sdk-python ../coho-management-sdk-python
+# `uv sync --no-sources` resolves coho-management-sdk from the package index instead, which is
+# what a user installing `coho-cli` gets. Sources do not affect the built wheel's
+# metadata either way.
+coho-management-sdk = { path = "../coho-management-sdk-python", editable = true }
 
 [dependency-groups]
 dev = [
-    "coho-sdk",
-    "coho-cli",
+    # The suite runs against coho_management_sdk.testing.FakeBff, which the library's `testing`
+    # extra provides. Declaring it here rather than restating its dependencies keeps
+    # the fake's requirements the library's business.
+    "coho-management-sdk[testing]",
     "pytest>=8.3",
-    "pytest-httpserver>=1.1",
     "ruff>=0.6",
     "mypy>=1.11",
 ]
@@ -31,7 +66,10 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["packages/coho-sdk/src", "packages/coho-cli/src"]
+src = ["src", "tests"]
+# Python only. Recent ruff also formats Python blocks inside Markdown, which would
+# rewrite the deliberately aligned samples in docs/.
+include = ["*.py", "*.pyi", "pyproject.toml"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -39,9 +77,12 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-mypy_path = "packages/coho-sdk/src:packages/coho-cli/src"
-packages = ["coho_sdk", "coho_cli"]
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["pytest_httpserver.*", "werkzeug.*", "keyring.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-testpaths = ["packages/coho-sdk/tests", "packages/coho-cli/tests"]
+testpaths = ["tests"]
 addopts = "-q"

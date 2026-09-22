@@ -12,9 +12,8 @@ from dataclasses import dataclass, field
 from functools import cached_property
 
 import typer
-
-from coho_sdk import Account, Coho, Config, Profile, Project, Ref
-from coho_sdk.profiles import Context
+from coho_management_sdk import Account, Coho, Config, Profile, Project, Ref
+from coho_management_sdk.profiles import Context
 
 EXIT_ERROR = 1
 EXIT_USAGE = 2

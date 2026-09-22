@@ -60,10 +60,10 @@ coho promote stage "v$VERSION"
 
 ## The library instead
 
-For anything more than a few commands, import `coho_sdk` and skip the shell:
+For anything more than a few commands, import `coho_management_sdk` and skip the shell:
 
 ```python
-from coho_sdk import Coho, SnapshotNotReady
+from coho_management_sdk import Coho, SnapshotNotReady
 
 coho = Coho(url=os.environ["COHO_URL"], token=os.environ["COHO_ACCESS_TOKEN"])
 site = coho.account("acme").project(os.environ["COHO_PROJECT"])

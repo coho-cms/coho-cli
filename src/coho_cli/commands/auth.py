@@ -5,10 +5,9 @@ from __future__ import annotations
 from typing import Annotated
 
 import typer
-
-from coho_sdk import auth as sdk_auth
-from coho_sdk.errors import NotLoggedIn
-from coho_sdk.profiles import DEFAULT_SCOPES, Profile
+from coho_management_sdk import auth as sdk_auth
+from coho_management_sdk.errors import NotLoggedIn
+from coho_management_sdk.profiles import DEFAULT_SCOPES, Profile
 
 from .._output import console, record, say, table, warn
 from .._state import State, Usage, get_state

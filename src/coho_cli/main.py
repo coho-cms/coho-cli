@@ -10,11 +10,9 @@ import sys
 from typing import Annotated
 
 import typer
-from rich.console import Console
-
-from coho_sdk import CohoError
-from coho_sdk import __version__ as sdk_version
-from coho_sdk.errors import (
+from coho_management_sdk import CohoError
+from coho_management_sdk import __version__ as sdk_version
+from coho_management_sdk.errors import (
     AuthError,
     EnvironmentMoved,
     MergeConflict,
@@ -24,7 +22,8 @@ from coho_sdk.errors import (
     Unauthenticated,
     VersionConflict,
 )
-from coho_sdk.profiles import Context
+from coho_management_sdk.profiles import Context
+from rich.console import Console
 
 from . import __version__
 from ._state import EXIT_AUTH, EXIT_CONFLICT, EXIT_ERROR, EXIT_NOT_FOUND, State, Usage
@@ -65,7 +64,7 @@ app = typer.Typer(
 
 def _version(value: bool) -> None:
     if value:
-        typer.echo(f"coho {__version__} (coho-sdk {sdk_version})")
+        typer.echo(f"coho {__version__} (coho-management-sdk {sdk_version})")
         raise typer.Exit()
 
 

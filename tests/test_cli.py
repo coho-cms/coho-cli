@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from conftest import Run
+from coho_management_sdk.profiles import Config
+from coho_management_sdk.testing import ACCOUNT, ENTRY, PROJECT, FakeBff
 
-from coho_sdk.profiles import Config
-from coho_sdk.testing import ACCOUNT, ENTRY, PROJECT, FakeBff
+from conftest import Run
 
 
 def test_version(run: Run) -> None:

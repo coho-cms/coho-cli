@@ -90,4 +90,5 @@ script can read the conflicts.
 | `HTTP_<status>` | a non-problem response (a proxy's HTML page) |
 | `NO_PREVIOUS_TARGET` | `rollback` found nothing to go back to |
 
-In Python these are `CohoError` subclasses; see [library/errors.md](library/errors.md).
+In Python these are `CohoError` subclasses; see the
+[library's error reference](https://github.com/coho-cms/coho-management-sdk-python/blob/main/docs/errors.md).

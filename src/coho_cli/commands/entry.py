@@ -6,8 +6,7 @@ import json
 from typing import Annotated, Any
 
 import typer
-
-from coho_sdk.models import Entry
+from coho_management_sdk.models import Entry
 
 from .._io import parse_set, read_json, set_path
 from .._output import console, emit_json, record, say, table

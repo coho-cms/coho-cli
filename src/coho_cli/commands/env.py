@@ -5,10 +5,9 @@ from __future__ import annotations
 from typing import Annotated
 
 import typer
+from coho_management_sdk.errors import SnapshotNotReady
+from coho_management_sdk.models import Environment
 from rich.status import Status
-
-from coho_sdk.errors import SnapshotNotReady
-from coho_sdk.models import Environment
 
 from .._output import console, record, say, table, warn
 from .._state import State, get_state

@@ -1,4 +1,4 @@
-.PHONY: sync test lint type check format contracts
+.PHONY: sync test lint type check format build clean
 
 sync:
 	uv sync
@@ -7,22 +7,24 @@ test:
 	uv run pytest
 
 lint:
-	uv run ruff check packages
-	uv run ruff format --check packages
+	uv run ruff check .
+	uv run ruff format --check .
 
 format:
-	uv run ruff format packages
-	uv run ruff check --fix packages
+	uv run ruff format .
+	uv run ruff check --fix .
 
 type:
 	uv run mypy
 
 check: lint type test
 
-# Re-vendor the contracts from a coho-data checkout and record its commit.
-COHO_DATA ?= ../coho-data
-contracts:
-	cp $(COHO_DATA)/bff/src/main/resources/openapi/bff.yaml contracts/
-	cp $(COHO_DATA)/api-authoring/src/main/resources/openapi/authoring.yaml contracts/
-	cp $(COHO_DATA)/api-delivery-contract/src/main/resources/openapi/delivery.yaml contracts/
-	git -C $(COHO_DATA) rev-parse HEAD > contracts/PIN
+# The wheel and the sdist, into dist/.
+build:
+	uv build --out-dir dist
+	uvx twine check --strict dist/*.whl dist/*.tar.gz
+
+clean:
+	rm -rf dist build .pytest_cache .ruff_cache .mypy_cache
+
+# The contracts live with the library, in coho-management-sdk-python.

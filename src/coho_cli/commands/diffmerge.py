@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import Annotated
 
 import typer
-
-from coho_sdk.errors import MergeConflict
-from coho_sdk.models import Resolution
+from coho_management_sdk.errors import MergeConflict
+from coho_management_sdk.models import Resolution
 
 from .._io import read_json
 from .._output import console, emit_json, err, record, table

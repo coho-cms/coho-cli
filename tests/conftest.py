@@ -6,9 +6,8 @@ import sys
 from pathlib import Path
 
 import pytest
+from coho_management_sdk.testing import FakeBff
 from pytest_httpserver import HTTPServer
-
-from coho_sdk.testing import FakeBff
 
 
 @pytest.fixture
@@ -26,7 +25,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bff: FakeBff) -> Path:
     monkeypatch.delenv("COHO_ACCOUNT", raising=False)
     monkeypatch.delenv("COHO_PROJECT", raising=False)
     monkeypatch.delenv("COHO_REF", raising=False)
-    from coho_sdk.profiles import Config
+    from coho_management_sdk.profiles import Config
 
     c = Config(path=cfg / "config.toml")
     p = c.profile("test", create=True)

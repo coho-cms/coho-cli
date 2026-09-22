@@ -6,13 +6,6 @@ resolution-markers = [
     "python_full_version < '3.15'",
 ]
 
-[manifest]
-members = [
-    "coho-cli",
-    "coho-sdk",
-    "coho-workspace",
-]
-
 [[package]]
 name = "annotated-doc"
 version = "0.0.5"
@@ -183,37 +176,50 @@ wheels = [
 [[package]]
 name = "coho-cli"
 version = "0.1.0"
-source = { editable = "packages/coho-cli" }
+source = { editable = "." }
 dependencies = [
-    { name = "coho-sdk" },
+    { name = "coho-management-sdk" },
     { name = "keyring" },
     { name = "rich" },
     { name = "typer" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "coho-management-sdk", extra = ["testing"] },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
-    { name = "coho-sdk", editable = "packages/coho-sdk" },
+    { name = "coho-management-sdk", editable = "../coho-management-sdk-python" },
     { name = "keyring", specifier = ">=25" },
     { name = "rich", specifier = ">=13.7" },
     { name = "typer", specifier = ">=0.12" },
 ]
 
+[package.metadata.requires-dev]
+dev = [
+    { name = "coho-management-sdk", extras = ["testing"], editable = "../coho-management-sdk-python" },
+    { name = "mypy", specifier = ">=1.11" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "ruff", specifier = ">=0.6" },
+]
+
 [[package]]
-name = "coho-sdk"
-version = "0.1.0"
-source = { editable = "packages/coho-sdk" }
+name = "coho-management-sdk"
+source = { editable = "../coho-management-sdk-python" }
 dependencies = [
     { name = "httpx" },
     { name = "tomli-w" },
 ]
 
 [package.optional-dependencies]
-keyring = [
-    { name = "keyring" },
-]
 testing = [
     { name = "pytest-httpserver" },
+    { name = "werkzeug" },
 ]
 
 [package.metadata]
@@ -222,30 +228,13 @@ requires-dist = [
     { name = "keyring", marker = "extra == 'keyring'", specifier = ">=25" },
     { name = "pytest-httpserver", marker = "extra == 'testing'", specifier = ">=1.1" },
     { name = "tomli-w", specifier = ">=1.0" },
+    { name = "werkzeug", marker = "extra == 'testing'", specifier = ">=3.0" },
 ]
 provides-extras = ["keyring", "testing"]
 
-[[package]]
-name = "coho-workspace"
-version = "0.0.0"
-source = { virtual = "." }
-
-[package.dev-dependencies]
-dev = [
-    { name = "coho-cli" },
-    { name = "coho-sdk" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-httpserver" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-
 [package.metadata.requires-dev]
 dev = [
-    { name = "coho-cli", editable = "packages/coho-cli" },
-    { name = "coho-sdk", editable = "packages/coho-sdk" },
+    { name = "keyring", specifier = ">=25" },
     { name = "mypy", specifier = ">=1.11" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-httpserver", specifier = ">=1.1" },
@@ -360,7 +349,7 @@ name = "importlib-metadata"
 version = "9.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "python_full_version < '3.15'" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6f/7e/1e7e8dc30634b93ebb3d58a3dea569ad146e656218d3960ab04f62047b29/importlib_metadata-9.0.1.tar.gz", hash = "sha256:ab830580bc0ef3db61ce8fae716389e5462b67e033018bab6d8f80ef17172f99", size = 59124, upload-time = "2026-08-28T15:30:34.646Z" }
 wheels = [

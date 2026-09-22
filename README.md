@@ -19,17 +19,19 @@ coho key create --label site-prod --ref prod    # the delivery key, shown once
 coho invite create jane@example.com --role member
 ```
 
-Two distributions live in this repository:
+This repository holds the **command**. It is a thin layer over
+[`coho-management-sdk`](https://github.com/coho-cms/coho-management-sdk-python), the
+Python library, which lives in its own repository along with the API contracts both
+implement — so a script can import the library without installing a CLI.
 
-| Package | What it is | Import / command |
+| | Repository | Import / command |
 |---|---|---|
-| [`packages/coho-sdk`](packages/coho-sdk) | The library. CI scripts and notebooks import it directly. | `from coho_sdk import Coho` |
-| [`packages/coho-cli`](packages/coho-cli) | The command. A thin layer over the library. | `coho` |
+| The command | [coho-cms/coho-cli](https://github.com/coho-cms/coho-cli) | `coho` |
+| The library | [coho-cms/coho-management-sdk-python](https://github.com/coho-cms/coho-management-sdk-python) | `from coho_management_sdk import Coho` |
 
 The CLI speaks to Coho's **BFF** with a person's bearer token, exactly like a browser
 session does. It never sees an authoring credential, which is what makes it safe to
-publish. The contracts it implements are vendored in [`contracts/`](contracts) at a
-pinned commit of `coho-data`.
+publish.
 
 ## Install
 
@@ -43,7 +45,7 @@ Start with the [quickstart](docs/quickstart.md). Everything else is in [`docs/`]
 
 - **Guides:** [install](docs/install.md) · [authentication](docs/authentication.md) · [configuration and context](docs/configuration.md) · [concepts](docs/concepts.md) · [content model](docs/content-model.md) · [errors and exit codes](docs/errors.md) · [CI usage](docs/ci.md)
 - **Command reference:** [`docs/commands/`](docs/commands/index.md), one page per noun
-- **Library reference:** [`docs/library/`](docs/library/index.md)
+- **Library reference:** [coho-management-sdk-python/docs](https://github.com/coho-cms/coho-management-sdk-python/tree/main/docs) — for using `coho_management_sdk` directly
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md)
 
 ## Status

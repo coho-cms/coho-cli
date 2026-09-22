@@ -2,62 +2,64 @@
 
 ## Setup
 
+The CLI is a thin layer over [`coho-management-sdk`](https://github.com/coho-cms/coho-management-sdk-python),
+and develops against a sibling checkout of it:
+
 ```bash
-uv sync                  # both packages, editable, plus dev tools
+git clone https://github.com/coho-cms/coho-management-sdk-python
+git clone https://github.com/coho-cms/coho-cli
+cd coho-cli
+uv sync                    # resolves coho-management-sdk from ../coho-management-sdk-python
 uv run coho --help
-uv run pytest            # 65 tests, no network, no Docker
-uv run ruff check packages && uv run ruff format --check packages
-uv run mypy              # strict
+uv run pytest              # 22 tests, no network, no server
+uv run ruff check . && uv run ruff format --check .
+uv run mypy                # strict
 ```
 
-Or `make check` for all of it.
+Or `make check` for all of it. `uv sync --no-sources` builds against the published
+`coho-management-sdk` instead, which is what a user gets; see `[tool.uv.sources]` in
+`pyproject.toml`.
 
 ## Layout
 
 ```
-packages/coho-sdk/src/coho_sdk/     the library
-  errors.py        CohoError and the branchable subclasses; error_for_response()
-  transport.py     httpx, bearer header, problem+json → CohoError, ETag capture
-  auth.py          PKCE login, token stores (keyring/file), refresh, TokenProvider
-  profiles.py      ~/.config/coho/config.toml: profiles, context, project registry
-  models.py        typed views over the contract's JSON (each keeps .raw)
-  client.py        Coho → Account → Project → Ref, and the *Api classes
-  testing.py       FakeBff: a contract-shaped fake for tests (yours too)
-packages/coho-cli/src/coho_cli/     the command
+src/coho_cli/
   main.py          the typer app, global options, error → exit code
   _state.py        config/profile/client/context resolution for commands
   _output.py       tables, JSON, shown-once secrets
+  _io.py           --file and --set parsing
   commands/        one module per noun
-contracts/         bff.yaml, authoring.yaml, delivery.yaml, PIN (coho-data commit)
-docs/              guides, command reference, library reference
+tests/             the whole command tree against the SDK's FakeBff
+docs/              guides and the command reference
 ```
+
+The library, the API contracts and the library reference live in
+[coho-management-sdk-python](https://github.com/coho-cms/coho-management-sdk-python).
 
 ## Rules of the road
 
 1. **The library owns behaviour; the CLI owns presentation.** If a command needs logic
-   that is not printing or argument parsing, put it in `coho_sdk` and call it.
-2. **Branch on `code`, never on status.** Add a subclass in `errors.py` only for codes a
-   caller would plausibly `except`; everything else is a plain `CohoError` with an
-   exact `.code`.
-3. **Every model keeps `.raw`.** `--output json` prints the response as the contract
-   describes it, not as our dataclass happens to spell it.
-4. **Secrets are shown once and go to stdout alone**, with the warning on stderr, so
+   that is not printing or argument parsing, it belongs in `coho_management_sdk` — open a pull
+   request there and call it from here. Resist the urge to reimplement it locally.
+2. **Errors print their `code`.** `main.py` maps `CohoError` to an exit code and a
+   one-line message; never catch an error just to reword it.
+3. **Secrets go to stdout alone**, with the warning on stderr, so
    `coho key create > key.txt` captures the key and nothing else.
-5. **Tests run against `FakeBff`**, never a live server. If a behaviour depends on a
-   contract detail, the fake should encode it (e.g. `If-Match` → 428/412).
-
-## Contracts
-
-`contracts/` is copied from `coho-data` at the commit in `contracts/PIN`. To bump:
-
-```bash
-make contracts COHO_DATA=../coho-data
-```
-
-Then read the diff and update `models.py`, `client.py`, the fake and the docs to
-match. The pin bump is the release trigger.
+4. **`--output json` prints the contract's response**, not a reshaped version of it.
+   Every model in the SDK keeps `.raw` for exactly this.
+5. **Tests run against `coho_management_sdk.testing.FakeBff`**, never a live server. A behaviour
+   that needs a new route belongs in the fake, which means a pull request against the
+   library.
 
 ## Releasing
 
-Tag `v<sdk version>`; CI builds both wheels and publishes them. Bump the versions in
-both `pyproject.toml` files and in `packages/coho-sdk/src/coho_sdk/_version.py`.
+1. Bump `version` in `pyproject.toml`, and the `coho-management-sdk` constraint if the CLI needs a
+   newer library. Add a `CHANGELOG.md` entry.
+2. Merge to `main`, then tag: `git tag v0.1.0 && git push origin v0.1.0`.
+3. CI tests, builds a wheel and an sdist, fails if the tag and the version disagree,
+   uploads both as a build artifact, and attaches them to a GitHub Release.
+
+Publishing to PyPI is off by default; the `publish-pypi` job runs only when the
+repository variable `PUBLISH_TO_PYPI` is `true`, using a trusted publisher and the
+`pypi` environment. Release `coho-management-sdk` first: a `coho-cli` that depends on a library
+version nobody can install is not installable either.

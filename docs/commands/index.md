@@ -33,5 +33,6 @@ Global options: `-p/--profile`, `-o/--output table|json`, `--url`, `--account`,
 | [preview](preview.md) | `preview entries/entry` |
 
 Every command accepts `-h`. In `--output json` mode each command prints the server's
-response as the contract describes it (see [`contracts/`](../../contracts/README.md));
+response as the contract describes it (the contracts are vendored in the
+[library repository](https://github.com/coho-cms/coho-management-sdk-python/tree/main/contracts));
 the tables below describe the human output.

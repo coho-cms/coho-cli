@@ -21,11 +21,12 @@ and `--output json` for scripts.
 ## Reference
 
 - [Command reference](commands/index.md) — one page per noun
-- [Library reference](library/index.md) — `coho_sdk`
+- [Library reference](https://github.com/coho-cms/coho-management-sdk-python/tree/main/docs) — `coho_management_sdk`, in its own repository
 
 ## Where things come from
 
 The CLI talks only to Coho's **BFF** (`bff.yaml`), which relays the authoring surface
 (`authoring.yaml`) as the caller's actor and a short allowlist of account-management
-calls to the auth tier. The contracts are vendored in [`contracts/`](../contracts/README.md).
+calls to the auth tier. The contracts are vendored in the
+[library repository](https://github.com/coho-cms/coho-management-sdk-python/tree/main/contracts).
 When this documentation and a contract disagree, the contract is right; please file an issue.

@@ -1,4 +1,4 @@
-"""coho_cli — the ``coho`` command. A thin layer over ``coho_sdk``."""
+"""coho_cli — the ``coho`` command. A thin layer over ``coho_management_sdk``."""
 
 from importlib.metadata import PackageNotFoundError, version
 
