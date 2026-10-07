@@ -1,6 +1,8 @@
 [project]
 name = "coho-cli"
-version = "0.1.0"
+# From git tags (hatch-vcs): tag v2026.1.0a1 builds 2026.1.0a1, and commits after it
+# build 2026.1.0a2.devN. CONTRIBUTING.md has the release steps.
+dynamic = ["version"]
 description = "The coho command: manage Coho accounts, projects, branches, releases and content from a terminal."
 readme = "README.md"
 license = "Apache-2.0"
@@ -42,8 +44,15 @@ Changelog = "https://github.com/coho-cms/coho-cli/blob/main/CHANGELOG.md"
 Issues = "https://github.com/coho-cms/coho-cli/issues"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+# No "+g1a2b3c" suffix: a local version cannot be uploaded to an index.
+local_scheme = "no-local-version"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/coho_cli"]

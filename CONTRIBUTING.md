@@ -71,11 +71,17 @@ The library, the API contracts and the library reference live in
 
 ## Releasing
 
-1. Bump `version` in `pyproject.toml`, and the `coho-management-sdk` constraint if the CLI needs a
-   newer library. Add a `CHANGELOG.md` entry.
-2. Merge to `main`, then tag: `git tag v0.1.0 && git push origin v0.1.0`.
-3. CI tests, builds a wheel and an sdist, fails if the tag and the version disagree,
-   uploads both as a build artifact, and attaches them to a GitHub Release.
+The version comes from git tags (`hatch-vcs`); nothing in the source holds it.
+Tag `v2026.1.0` to release, `v2026.1.0a1`, `b1` or `rc1` for a pre-release. Every
+commit after a tag builds a dev version such as `2026.1.0a2.dev3`. ⚠️ Never tag a dev
+version: CI refuses it, and every later build would fail.
+
+1. Update the `coho-management-sdk` constraint if the CLI needs a newer library, and add
+   a `CHANGELOG.md` entry.
+2. Commit and push, then tag: `git tag v2026.1.0a4 && git push origin v2026.1.0a4`.
+3. CI tests, builds a wheel and an sdist, fails if the tag is not a version in its
+   standard form, uploads both as a build artifact, and attaches them to a GitHub
+   Release, marked as a pre-release for an alpha, beta or release candidate.
 
 Publishing to PyPI is off by default; the `publish-pypi` job runs only when the
 repository variable `PUBLISH_TO_PYPI` is `true`, using a trusted publisher and the
