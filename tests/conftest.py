@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -36,6 +37,11 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bff: FakeBff) -> Path:
     return cfg
 
 
+# CI sets FORCE_COLOR, so Rich styles the output there and not on a laptop. The
+# tests are about the text: escape codes would split "--offset 2" and the like.
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
 class Run:
     def __init__(self, capsys: pytest.CaptureFixture[str]) -> None:
         self.capsys = capsys
@@ -54,6 +60,7 @@ class Run:
         finally:
             sys.argv = old
         out, err = self.capsys.readouterr()
+        out, err = _ANSI.sub("", out), _ANSI.sub("", err)
         assert code == expect, f"exit {code} != {expect}\nstdout:\n{out}\nstderr:\n{err}"
         return out, err
 
