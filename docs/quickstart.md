@@ -12,8 +12,9 @@ coho login
 ```
 
 `login` opens the hosted sign-in in your browser and stores the tokens in your OS
-keyring. If your deployment has no app client for the CLI yet, store a token you
-obtained elsewhere instead: `coho login --token "$TOKEN"`. See
+keyring. The domain and client id are the auth stack's `hosted_ui` and
+`cli_client_id` outputs. For a token obtained elsewhere, `coho login --token "$TOKEN"`
+stores it instead. See
 [authentication](authentication.md).
 
 ```bash

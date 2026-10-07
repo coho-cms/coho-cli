@@ -16,7 +16,20 @@ uv run ruff check . && uv run ruff format --check .
 uv run mypy                # strict
 ```
 
-Or `make check` for all of it. `uv sync --no-sources` builds against the published
+Or `make check` for all of it.
+
+### `coho` as a real command
+
+To use your working copy as the installed `coho`, from any directory:
+
+```bash
+uv tool install --editable . --with-editable ../coho-management-sdk-python
+```
+
+The command lands in `~/.local/bin` and runs the source in both repositories, so
+edits take effect at once. Reinstall, by adding `--force`, only when dependencies or
+the entry point change; `uv tool uninstall coho-cli` removes it. It shares the
+profiles and stored logins in `~/.config/coho` with `uv run coho`. `uv sync --no-sources` builds against the published
 `coho-management-sdk` instead, which is what a user gets; see `[tool.uv.sources]` in
 `pyproject.toml`.
 

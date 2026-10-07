@@ -54,8 +54,7 @@ Alpha. The command surface is complete for login, accounts, members, invitations
 projects, roles, refs, branches, tags, content types, entries, diff/merge,
 environments, tiers, delivery keys, export and preview. Two things the server does
 not yet offer are handled locally and flagged in the docs: project listing (a local
-registry) and a public app client for the browser login (until it exists, use
-`coho login --token`).
+registry).
 
 ## Licence
 

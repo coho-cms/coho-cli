@@ -6,9 +6,11 @@ obtains and keeps the token itself.
 
 ## `coho login`
 
-1. Starts a listener on `127.0.0.1:<callback_port>`.
+1. Starts a listener on the loopback interface, port `callback_port`: on
+   `127.0.0.1`, and on `::1` where the machine has it, since a browser may resolve
+   `localhost` to either.
 2. Opens the hosted sign-in UI with PKCE (`code_challenge_method=S256`) and
-   `redirect_uri=http://127.0.0.1:<port>/callback`.
+   `redirect_uri=http://localhost:<port>/callback`.
 3. Exchanges the code at `<oidc_domain>/oauth2/token` **without a client secret** — the
    CLI is a public client. The PKCE verifier is what proves this machine started the
    flow.
@@ -31,29 +33,35 @@ coho whoami                    # /api/v1/me
 ### ⚠️ The callback URL must match exactly
 
 Cognito compares `redirect_uri` byte for byte, port included. The CLI's app client
-must be registered with `http://127.0.0.1:<callback_port>/callback` and the profile
-must use the same port (`coho configure --callback-port 8765`; 8765 is the default).
-There is no RFC 8252 "any loopback port" rule.
+is registered with `http://localhost:8765/callback`, and the profile must use the same
+port (`coho configure --callback-port 8765`; 8765 is the default). There is no RFC 8252
+"any loopback port" rule. It is `localhost` rather than `127.0.0.1` because Cognito
+allows plain http for `localhost` alone.
 
-## The app client the CLI needs
+## The CLI's app client
 
-`coho-data`'s `infra/auth` provisions one app client — the BFF's, confidential,
-with a secret. The CLI needs a **second** one:
+`coho-data`'s `infra/auth` provisions two app clients: the BFF's, which is
+confidential and holds a secret, and the CLI's:
 
-- public (no secret), authorization-code flow with PKCE,
-- `explicit_auth_flows = ["ALLOW_REFRESH_TOKEN_AUTH"]`,
-- callback `http://127.0.0.1:8765/callback`,
-- scopes: `openid`, `coho-auth/self`, and — if the CLI should be able to invite
-  members and change roles — `coho-auth/accounts`,
-- its id added to `COHO_COGNITO_AUDIENCES`, or the auth tier refuses its tokens.
+- public, with no secret, since a program on a laptop cannot keep one; PKCE ties the
+  code to the process that asked for it,
+- authorization-code flow, refreshed through `ALLOW_REFRESH_TOKEN_AUTH`,
+- callback `http://localhost:8765/callback`,
+- scopes `openid`, `coho-auth/self` and `coho-auth/accounts`, matching the SDK's
+  defaults; `accounts` is what `coho invite` and `coho member role` need,
+- its id in `COHO_COGNITO_AUDIENCES`, which `infra/dev` sets, or the auth tier
+  refuses its tokens.
 
-Which scopes it holds is an open decision in `coho-data` (doc 22 Q2). Without
-`coho-auth/accounts`, `coho invite`, `coho member role`, `coho member remove`,
-`coho account entitlements` and `coho account events` answer `INSUFFICIENT_SCOPE`.
+Point a profile at it with the auth stack's outputs:
 
-**Until that client exists**, `coho login --token` is the path: obtain an access token
-however your deployment allows and store it. The token still expires; there is no
-refresh without a refresh token.
+```bash
+coho configure --profile dev --url https://api-dev.coho-cms.dev \
+    --oidc-domain "$(terraform -chdir=infra/auth output -raw hosted_ui)" \
+    --client-id "$(terraform -chdir=infra/auth output -raw cli_client_id)"
+```
+
+`coho login --token` still works for a token obtained elsewhere. It has no refresh
+token, so it lasts only as long as the access token does.
 
 ## Token storage
 
@@ -75,13 +83,19 @@ rotate it. There is no refresh for a token supplied this way.
 ## Sign-up and invitations
 
 Both finish in a browser, because they end with the BFF opening a session and posting
-an ID token to the auth tier — a CLI never holds an ID token.
+an ID token to the auth tier — a CLI never holds an ID token. None of these needs a
+login, and none sends one.
 
 ```
 coho signup "Acme"                       # opens the sign-up page; then `coho login`
-coho invite lookup <token-or-link>       # what the invitation offers; needs no login
+coho invite lookup <token-or-link>       # what the invitation offers
 coho invite accept <token-or-link>       # opens the acceptance page; then `coho login`
 ```
+
+`coho signup` makes no API call at all: it opens the BFF's sign-up page, exactly as
+`coho login` opens the sign-in page. Sign-up is an interactive browser session on
+purpose, and before release that page is where a captcha is verified. You create your
+identity and verify your email there, and the page ends by showing your new account.
 
 ## What the CLI never holds
 

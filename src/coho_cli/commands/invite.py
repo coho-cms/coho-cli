@@ -125,7 +125,7 @@ def accept(
     state = get_state(ctx)
     url = state.coho.invitation_accept_start(_strip_fragment(token), display_name=display_name)
     if no_browser:
-        console.print(url, markup=False, highlight=False)
+        console.print(url, markup=False, highlight=False, soft_wrap=True)
     else:
         webbrowser.open(url)
         say(state, "Opened the acceptance page. When it says you are signed in, run `coho login`.")

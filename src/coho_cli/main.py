@@ -160,10 +160,10 @@ def _exit_code(exc: CohoError) -> int:
 
 
 def _print_error(exc: CohoError) -> None:
-    err.print(
-        f"[red]error[/red] [bold]{exc.code}[/bold]: {exc.detail or exc.title or exc}",
-        highlight=False,
-    )
+    # The bare message, not str(exc): CohoError's own text already starts with the
+    # code, and this line prints the code itself.
+    message = exc.detail or exc.title or (str(exc.args[0]) if exc.args else exc.code)
+    err.print(f"[red]error[/red] [bold]{exc.code}[/bold]: {message}", highlight=False)
     if isinstance(exc, MergeConflict) and exc.conflicts:
         err.print("conflicts:")
         for c in exc.conflicts:

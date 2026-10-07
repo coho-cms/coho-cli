@@ -8,11 +8,27 @@ All notable changes to `coho-cli`. The format follows
 
 ### Changed
 
+- `coho signup` opens the BFF's sign-up page in the browser, as `coho login` opens the
+  sign-in page, and makes no API call itself. Sign-up stays an interactive session;
+  before release that page verifies a captcha.
+- `coho login` uses `http://localhost:8765/callback`, matching the CLI's Cognito app
+  client, and answers on both loopback addresses.
+
 - The library moved to its own repository and distribution,
   [coho-management-sdk-python](https://github.com/coho-cms/coho-management-sdk-python), along with the API
   contracts and the library reference. This repository is now the command alone, and
   depends on `coho-management-sdk` as an ordinary package. Development uses a sibling checkout;
   see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Fixed
+
+- `coho signup`, `coho invite lookup` and `coho invite accept` failed with
+  `NOT_LOGGED_IN` for anyone without a login, who are exactly the people they are for.
+- Errors printed their code twice, as in `error NOT_LOGGED_IN: NOT_LOGGED_IN: …`.
+- URLs printed by `--no-browser` were wrapped at the terminal's width, so a copied URL
+  came out broken.
+- `coho login` followed a successful sign-in with a bare `UNAUTHENTICATED` when the
+  identity had no Coho account yet. It now says so, and what to run.
 
 ## [0.1.0] — unreleased
 

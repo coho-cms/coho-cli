@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 from coho_management_sdk import auth as sdk_auth
-from coho_management_sdk.errors import NotLoggedIn
+from coho_management_sdk.errors import NotLoggedIn, Unauthenticated
 from coho_management_sdk.profiles import DEFAULT_SCOPES, Profile
 
 from .._output import console, record, say, table, warn
@@ -55,7 +55,7 @@ def login(
         def on_url(url: str) -> None:
             if no_browser:
                 console.print("Open this URL in a browser to sign in:\n", highlight=False)
-                console.print(url, highlight=False, markup=False)
+                console.print(url, highlight=False, markup=False, soft_wrap=True)
             else:
                 console.print(
                     "Opening your browser to sign in… (use --no-browser to print the URL instead)"
@@ -71,7 +71,7 @@ def login(
         store.save(profile.name, tokens)
         say(state, f"Signed in to profile [bold]{profile.name}[/bold].")
     # Confirm the token works, and show who we are.
-    _print_me(state)
+    _print_me(state, just_signed_in=True)
 
 
 def logout(ctx: typer.Context) -> None:
@@ -86,11 +86,22 @@ def whoami(ctx: typer.Context) -> None:
     _print_me(get_state(ctx))
 
 
-def _print_me(state: State) -> None:
+def _print_me(state: State, *, just_signed_in: bool = False) -> None:
     try:
         me = state.coho.me()
     except NotLoggedIn:
         raise Usage(f"not logged in to profile '{state.profile.name}'. Run `coho login`.") from None
+    except Unauthenticated:
+        if not just_signed_in:
+            raise
+        # The provider has just issued this token, so it is not stale. The auth
+        # service gives UNAUTHENTICATED for an identity it has no account for
+        # too, on purpose (LG-5), and right after a sign-in that is the likely one.
+        raise Usage(
+            "you signed in, but Coho has no account for this identity yet. "
+            "Run `coho signup <account name>` and choose Sign in on the provider's page "
+            "to found one, or accept an invitation to join one."
+        ) from None
     if state.output == "json":
         record(state, me.raw, [])
         return
@@ -122,16 +133,31 @@ def signup(
         bool, typer.Option("--no-browser", help="Print the URL instead of opening it.")
     ] = False,
 ) -> None:
-    """Found a new account. Finishes in the browser; then run `coho login`."""
+    """Found a new account, in the browser. Then run `coho login`.
+
+    Opens the sign-up page, like `coho login` opens the sign-in page, and makes no
+    API call itself: sign-up is an interactive browser session on purpose. You
+    create your identity and verify your email there, and the page ends by showing
+    your new account.
+    """
     import webbrowser
 
     state = get_state(ctx)
-    url = state.coho.signup_start(account_name, display_name=display_name)
+    try:
+        url = state.coho.signup_url(account_name, display_name=display_name)
+    except ValueError as exc:
+        raise Usage("the account name cannot be blank") from exc
     if no_browser:
-        console.print(url, markup=False, highlight=False)
+        console.print("Open this URL in a browser to sign up:\n", highlight=False)
+        console.print(url, markup=False, highlight=False, soft_wrap=True)
     else:
         webbrowser.open(url)
-        say(state, "Opened the sign-up page. When it says you are signed in, run `coho login`.")
+        say(state, "Opened the sign-up page in your browser.")
+    say(
+        state,
+        "Create your identity and verify your email there. When the page shows your "
+        "new account, run `coho login`.",
+    )
 
 
 # -- configure / profile -------------------------------------------------------------

@@ -20,7 +20,9 @@ are, so a bad token fails here rather than on your next command.
 | `--port` | loopback port for the callback; must be registered on the app client. `0` picks a free port, which Cognito does not accept |
 | `--timeout` | seconds to wait for the browser, default 300 |
 
-Exit 3 if the provider refuses or the token does not work.
+Exit 3 if the provider refuses or the token does not work. If the sign-in works but
+Coho has no account for that identity yet, it says so and exits 2: run `coho signup`
+and choose **Sign in** on the provider's page, or accept an invitation.
 
 ## `coho logout`
 
@@ -42,8 +44,11 @@ Acme     0192b4…  admin  0192c5…
 
 ## `coho signup ACCOUNT_NAME [--name DISPLAY] [--no-browser]`
 
-Starts founding a new account. The BFF finishes it in a browser (the flow ends with an
-ID token the CLI never holds). When the page says you are signed in, run `coho login`.
+Founds a new account, in the browser. Opens the BFF's sign-up page, the way `coho
+login` opens the sign-in page, and makes no API call itself: sign-up is an interactive
+session on purpose, and before release that page verifies a captcha. You create your
+identity and verify your email there, and the page ends by showing your new account.
+Then run `coho login`. Needs no login, and `--no-browser` prints the URL instead.
 
 ## `coho configure`
 

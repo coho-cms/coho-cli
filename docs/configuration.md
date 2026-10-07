@@ -14,7 +14,7 @@ url = "https://staging.coho.example"      # the BFF
 oidc_domain = "https://acme.auth.us-east-1.amazoncognito.com"
 client_id = "1h57kf5cpq17m0eml12EXAMPLE"  # the CLI's public app client
 scopes = ["openid", "coho-auth/self", "coho-auth/accounts"]
-callback_port = 8765                      # must match the app client's callback URL
+callback_port = 8765                      # must match the app client's callback URL: http://localhost:8765/callback
 token_store = "keyring"                   # or "file"
 
 [profiles.staging.context]

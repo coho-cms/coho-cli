@@ -11,7 +11,7 @@ and `--output json` for scripts.
 |---|---|
 | [Install](install.md) | uv, pipx, from source; shell completion |
 | [Quickstart](quickstart.md) | login → project → type → entry → branch → merge → tag → promote, in ten minutes |
-| [Authentication](authentication.md) | PKCE login, token storage, `COHO_ACCESS_TOKEN`, the app client the CLI needs |
+| [Authentication](authentication.md) | PKCE login, token storage, `COHO_ACCESS_TOKEN`, the CLI's app client |
 | [Configuration and context](configuration.md) | `config.toml`, profiles, `coho use`, environment variables, the local project registry |
 | [Concepts](concepts.md) | refs, branches, tags, environments, tiers, roles — what each is and who may touch it |
 | [Content model](content-model.md) | type definitions, field types, entries, locales, references |

@@ -53,6 +53,6 @@ coho --install-completion        # bash, zsh, fish, PowerShell
 ```bash
 coho --version
 coho configure --url https://coho.example.com    # your BFF
-coho login --token "$TOKEN"                       # or `coho login` once an app client exists
+coho login                                        # or --token "$TOKEN" for one obtained elsewhere
 coho whoami
 ```

@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from coho_management_sdk.profiles import Config
-from coho_management_sdk.testing import ACCOUNT, ENTRY, PROJECT, FakeBff
+from coho_management_sdk.testing import ACCOUNT, ENTRY, INVITATION_TOKEN, PROJECT, FakeBff
 
 from conftest import Run
 
@@ -223,3 +224,59 @@ def test_configure_creates_profile(run: Run, home: Path) -> None:
     )
     out, _ = run("profile", "list")
     assert "staging" in out and "pkce" in out
+
+
+# -- before a login: what a person does before they have one ---------------------------
+
+
+def test_signup_opens_a_page_with_no_login_and_no_request(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    before = len(bff.requests)
+    out, _ = run("signup", "Maya Co", "--name", "Maya", "--no-browser")
+    assert f"{bff.url}/auth/signup?accountName=Maya%20Co" in out
+    assert "returnTo=%2Fapi%2Fv1%2Fme" in out and "displayName=Maya" in out
+    assert len(bff.requests) == before  # the CLI called nothing; the browser does it all
+
+
+def test_signup_refuses_a_blank_name(run: Run, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    _, err = run("signup", "   ", "--no-browser", expect=2)
+    assert "blank" in err
+
+
+def test_invite_lookup_needs_no_login(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    out, _ = run("invite", "lookup", f"https://example/invite#{INVITATION_TOKEN}")
+    assert "Acme" in out and "pending" in out
+    assert "Authorization" not in bff.last().headers
+
+
+def test_an_error_names_its_code_once(run: Run, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    _, err = run("account", "list", expect=3)
+    assert err.count("NOT_LOGGED_IN") == 1
+
+
+def test_login_explains_an_identity_with_no_coho_account(
+    run: Run, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The provider issued a valid token, but the auth service knows no account for
+    it: say that, rather than a bare UNAUTHENTICATED straight after "Signed in"."""
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    _, err = run("login", "--token", "valid-but-unknown-identity", expect=2)
+    text = " ".join(err.split())  # the terminal wraps long lines; compare the words
+    assert "no account for this identity" in text and "coho signup" in text
+    assert "UNAUTHENTICATED" not in text
+
+
+def test_whoami_with_a_rejected_token_still_says_unauthenticated(
+    run: Run, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the moment right after signing in gets the friendlier reading."""
+    monkeypatch.setenv("COHO_ACCESS_TOKEN", "some-rejected-token")
+    _, err = run("whoami", expect=3)
+    assert "UNAUTHENTICATED" in err
