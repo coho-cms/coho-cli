@@ -21,7 +21,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "coho-management-sdk>=0.1.0,<0.2",
+    # Any 2026.1 SDK. A pre-release floor admits pre-releases, which installers
+    # skip otherwise: 2026.1.0a1, the dev builds after it (2026.1.0a2.devN), the
+    # betas and release candidates, then 2026.1.0 and its fixes. `<2026.2` keeps
+    # out 2026.2 and its pre-releases.
+    "coho-management-sdk>=2026.1.0a1,<2026.2",
     "typer>=0.12",
     "rich>=13.7",
     "keyring>=25",

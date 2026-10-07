@@ -33,21 +33,31 @@ jobs:
       run:
         working-directory: coho-cli
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: coho-cli
 
       # The CLI develops against a sibling checkout of the library, which is what
       # `[tool.uv.sources]` in pyproject.toml points at. A public repository needs no
       # extra credential; a private one would need a PAT in `token:`.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: coho-cms/coho-management-sdk-python
           path: coho-management-sdk-python
+          # The library's release branch, not its default branch: this CLI needs
+          # the 2026.1 line, which lives there. Spelled out as a branch because the
+          # release tag v2026.1.0 will share its name.
+          ref: refs/heads/v2026.1.0
+          # The library's version comes from its tags. A shallow clone has none and
+          # builds 0.1.dev1, which the version range above refuses.
+          fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        # An exact release: setup-uv stopped publishing floating major tags at v8,
+        # so `@v10` would not resolve.
+        uses: astral-sh/setup-uv@v10.2.0
         with:
+          python-version: ${{ matrix.python }} # without this every job used the same Python
           enable-cache: true
           cache-dependency-glob: coho-cli/uv.lock
 
@@ -71,10 +81,12 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        # An exact release: setup-uv stopped publishing floating major tags at v8,
+        # so `@v10` would not resolve.
+        uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -99,7 +111,7 @@ jobs:
         run: uvx twine check --strict dist/*.whl dist/*.tar.gz
 
       - name: Upload the distributions
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coho-cli-dist
           path: |
@@ -117,7 +129,7 @@ jobs:
       contents: write
     steps:
       - name: Download the distributions
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coho-cli-dist
           path: dist
@@ -149,7 +161,7 @@ jobs:
       id-token: write
     steps:
       - name: Download the distributions
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coho-cli-dist
           path: dist

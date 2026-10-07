@@ -46,6 +46,11 @@ tests/             the whole command tree against the SDK's FakeBff
 docs/              guides and the command reference
 ```
 
+⚠️ **Push the SDK first.** CI builds the CLI against the SDK's `main` on GitHub,
+not your local copy. A CLI change that uses new SDK code fails CI with
+`"Coho" has no attribute …` until that SDK code is pushed; then re-run the CLI's
+workflow.
+
 The library, the API contracts and the library reference live in
 [coho-management-sdk-python](https://github.com/coho-cms/coho-management-sdk-python).
 
