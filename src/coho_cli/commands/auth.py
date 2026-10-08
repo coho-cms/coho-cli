@@ -48,7 +48,8 @@ def login(
         if not profile.can_login:
             raise Usage(
                 f"profile '{profile.name}' has no identity provider configured. Either\n"
-                f"  coho configure --profile {profile.name} --oidc-domain https://… --client-id …\n"
+                f"  coho configure --profile {profile.name} --oidc-domain https://auth-…"
+                " --client-id coho-cli\n"
                 "or store a token you obtained elsewhere with `coho login --token …`."
             )
 
@@ -165,16 +166,26 @@ def signup(
 
 def configure(
     ctx: typer.Context,
+    profile_name: Annotated[
+        str | None,
+        typer.Option(
+            "--profile",
+            "-p",
+            help="The profile to create or update. The same as the global --profile, "
+            "which goes before the command name.",
+        ),
+    ] = None,
     url: Annotated[str | None, typer.Option("--url", help="The BFF base URL.")] = None,
     oidc_domain: Annotated[
         str | None,
         typer.Option(
             "--oidc-domain",
-            help="Cognito hosted-UI domain, e.g. https://x.auth.us-east-1.amazoncognito.com",
+            help="Coho's sign-in service, e.g. https://auth-dev.coho-cms.dev",
         ),
     ] = None,
     client_id: Annotated[
-        str | None, typer.Option("--client-id", help="The CLI's public app client id.")
+        str | None,
+        typer.Option("--client-id", help="The CLI's client at the sign-in service: coho-cli."),
     ] = None,
     scopes: Annotated[
         str | None,
@@ -182,7 +193,10 @@ def configure(
     ] = None,
     callback_port: Annotated[
         int | None,
-        typer.Option("--callback-port", help="Loopback port registered on the app client."),
+        typer.Option(
+            "--callback-port",
+            help="Loopback port for the sign-in callback; the sign-in service accepts any.",
+        ),
     ] = None,
     token_store: Annotated[
         str | None, typer.Option("--token-store", help="`keyring` (default) or `file`.")
@@ -193,6 +207,8 @@ def configure(
 ) -> None:
     """Create or update a profile (`--profile NAME`, default `default`)."""
     state = get_state(ctx)
+    if profile_name:
+        state.profile_name = profile_name
     profile = state.config.profile(state.profile_name, create=True)
     if url:
         profile.url = url.rstrip("/")

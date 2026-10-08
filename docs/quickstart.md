@@ -7,13 +7,13 @@ Ten minutes from nothing to a promoted release. Every command here has a page in
 
 ```bash
 coho configure --profile staging --url https://staging.coho.example \
-    --oidc-domain https://acme.auth.us-east-1.amazoncognito.com --client-id 1h57kf5cpq17m0eml12EXAMPLE
+    --oidc-domain https://auth-staging.coho.example --client-id coho-cli
 coho login
 ```
 
-`login` opens the hosted sign-in in your browser and stores the tokens in your OS
-keyring. The domain and client id are the auth stack's `hosted_ui` and
-`cli_client_id` outputs. For a token obtained elsewhere, `coho login --token "$TOKEN"`
+`login` opens Coho's sign-in pages in your browser and stores the tokens in your OS
+keyring. The domain is the sign-in service's address, `auth-<env>.<domain>`; the
+client id is always `coho-cli`. For a token obtained elsewhere, `coho login --token "$TOKEN"`
 stores it instead. See
 [authentication](authentication.md).
 

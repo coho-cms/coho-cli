@@ -11,10 +11,10 @@ profile = "staging"                       # which profile commands use by defaul
 
 [profiles.staging]
 url = "https://staging.coho.example"      # the BFF
-oidc_domain = "https://acme.auth.us-east-1.amazoncognito.com"
-client_id = "1h57kf5cpq17m0eml12EXAMPLE"  # the CLI's public app client
+oidc_domain = "https://auth-staging.coho.example"  # Coho's sign-in service
+client_id = "coho-cli"                    # the CLI's client there
 scopes = ["openid", "coho-auth/self", "coho-auth/accounts"]
-callback_port = 8765                      # must match the app client's callback URL: http://localhost:8765/callback
+callback_port = 8765                      # the loopback port for the sign-in callback; any free port works
 token_store = "keyring"                   # or "file"
 
 [profiles.staging.context]

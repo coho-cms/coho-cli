@@ -9,7 +9,7 @@ obtains and keeps the token itself.
 1. Starts a listener on the loopback interface, port `callback_port`: on
    `127.0.0.1`, and on `::1` where the machine has it, since a browser may resolve
    `localhost` to either.
-2. Opens the hosted sign-in UI with PKCE (`code_challenge_method=S256`) and
+2. Opens Coho's sign-in pages with PKCE (`code_challenge_method=S256`) and
    `redirect_uri=http://localhost:<port>/callback`.
 3. Exchanges the code at `<oidc_domain>/oauth2/token` **without a client secret** — the
    CLI is a public client. The PKCE verifier is what proves this machine started the
@@ -24,40 +24,37 @@ expiry — the same margin the BFF uses for browser sessions — and stores the 
 ```
 coho login                     # browser flow
 coho login --no-browser        # print the URL to open elsewhere (SSH sessions)
-coho login --port 9000         # a different loopback port, if the app client allows it
+coho login --port 9000         # a different loopback port; any is accepted
 coho login --token "$TOKEN"    # store a token obtained elsewhere, no browser
 coho logout                    # forget the stored tokens for the profile
 coho whoami                    # /api/v1/me
 ```
 
-### ⚠️ The callback URL must match exactly
+### Any loopback port
 
-Cognito compares `redirect_uri` byte for byte, port included. The CLI's app client
-is registered with `http://localhost:8765/callback`, and the profile must use the same
-port (`coho configure --callback-port 8765`; 8765 is the default). There is no RFC 8252
-"any loopback port" rule. It is `localhost` rather than `127.0.0.1` because Cognito
-allows plain http for `localhost` alone.
+The sign-in service accepts `http://localhost:<any port>/callback` (and the same on
+`127.0.0.1` and `[::1]`) for the CLI's client, as RFC 8252 asks of a native app, so
+`coho login --port 9000` needs nothing registered anywhere. 8765 is only the default.
 
-## The CLI's app client
+## The CLI's client
 
-`coho-data`'s `infra/auth` provisions two app clients: the BFF's, which is
-confidential and holds a secret, and the CLI's:
+The CLI signs in through Coho's sign-in service, `auth-<env>.<domain>`
+(`coho-data` doc 27), at the same `/oauth2/authorize` and `/oauth2/token` addresses
+Cognito's hosted UI used before it was removed. Its client there, `coho-cli`, is:
 
 - public, with no secret, since a program on a laptop cannot keep one; PKCE ties the
   code to the process that asked for it,
-- authorization-code flow, refreshed through `ALLOW_REFRESH_TOKEN_AUTH`,
-- callback `http://localhost:8765/callback`,
-- scopes `openid`, `coho-auth/self` and `coho-auth/accounts`, matching the SDK's
-  defaults; `accounts` is what `coho invite` and `coho member role` need,
-- its id in `COHO_COGNITO_AUDIENCES`, which `infra/dev` sets, or the auth tier
-  refuses its tokens.
+- refreshed through the sign-in service, whose refresh tokens only `coho-cli` can use,
+- given `coho-auth/self` and `coho-auth/accounts` by the auth tier; `accounts` is what
+  `coho invite` and `coho member role` need.
 
-Point a profile at it with the auth stack's outputs:
+The tokens are still Cognito's, issued to the sign-in service's own Cognito client.
+
+Point a profile at it:
 
 ```bash
 coho configure --profile dev --url https://api-dev.coho-cms.dev \
-    --oidc-domain "$(terraform -chdir=infra/auth output -raw hosted_ui)" \
-    --client-id "$(terraform -chdir=infra/auth output -raw cli_client_id)"
+    --oidc-domain https://auth-dev.coho-cms.dev --client-id coho-cli
 ```
 
 `coho login --token` still works for a token obtained elsewhere. It has no refresh

@@ -226,6 +226,13 @@ def test_configure_creates_profile(run: Run, home: Path) -> None:
     assert "staging" in out and "pkce" in out
 
 
+def test_configure_takes_profile_after_its_name_as_its_help_says(run: Run, home: Path) -> None:
+    run("configure", "--profile", "dev", "--url", "https://api-dev.example", "--client-id", "x")
+    cfg = Config.load(home / "config.toml")
+    assert cfg.profile("dev").url == "https://api-dev.example"
+    assert cfg.profile("dev").client_id == "x"
+
+
 # -- before a login: what a person does before they have one ---------------------------
 
 
