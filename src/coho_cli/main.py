@@ -24,8 +24,10 @@ from coho_management_sdk.errors import (
 )
 from coho_management_sdk.profiles import Context
 from rich.console import Console
+from rich.text import Text
 
 from . import __version__
+from ._output import console
 from ._state import EXIT_AUTH, EXIT_CONFLICT, EXIT_ERROR, EXIT_NOT_FOUND, State, Usage
 from .commands import (
     account,
@@ -64,8 +66,30 @@ app = typer.Typer(
 
 def _version(value: bool) -> None:
     if value:
-        typer.echo(f"coho {__version__} (coho-management-sdk {sdk_version})")
+        _print_version()
         raise typer.Exit()
+
+
+# The mark's two bars in their dark-surface colours (brand rules: slate-dk over red-dk).
+_MARK_UPPER = "on #8FA9BC"
+_MARK_LOWER = "on #D9453F"
+
+
+def _print_version() -> None:
+    """The header: the mark beside the name where there is colour, plain lines where there is not.
+
+    Rich decides: no colour when output is piped or NO_COLOR is set, and it steps the
+    24-bit colours down on a terminal that cannot show them.
+    """
+    tagline = f"a CohoWorks project · v{__version__}"
+    sdk = f"coho-management-sdk {sdk_version}"
+    if console.color_system is None or console.no_color:
+        console.print(f"CohoCMS\n{tagline}\n{sdk}", highlight=False)
+        return
+    bar = " " * 8
+    console.print(Text.assemble((bar, _MARK_UPPER), "  ", ("CohoCMS", "bold")))
+    console.print(Text.assemble((bar, _MARK_LOWER), "  ", (tagline, "dim")))
+    console.print(Text.assemble(" " * len(bar), "  ", (sdk, "dim")))
 
 
 @app.callback()

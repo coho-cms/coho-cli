@@ -7,12 +7,16 @@ import pytest
 from coho_management_sdk.profiles import Config
 from coho_management_sdk.testing import ACCOUNT, ENTRY, INVITATION_TOKEN, PROJECT, FakeBff
 
+from coho_cli import __version__
 from conftest import Run
 
 
 def test_version(run: Run) -> None:
     out, _ = run("--version")
-    assert out.startswith("coho ")
+    lines = [line.strip() for line in out.splitlines()]
+    assert lines[0] == "CohoCMS"
+    assert lines[1] == f"a CohoWorks project · v{__version__}"
+    assert lines[2].startswith("coho-management-sdk ")
 
 
 def test_status_without_context_hints(run: Run) -> None:
