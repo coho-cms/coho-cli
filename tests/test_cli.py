@@ -354,3 +354,24 @@ def test_whoami_with_a_rejected_token_still_says_unauthenticated(
     monkeypatch.setenv("COHO_ACCESS_TOKEN", "some-rejected-token")
     _, err = run("whoami", expect=3)
     assert "UNAUTHENTICATED" in err
+
+
+def test_token_create_list_and_revoke(run: Run) -> None:
+    run("use", "acme", PROJECT)
+    out, _ = run("token", "create", "--role", "maintainer", "--label", "CI")
+    assert "coho_pt_SECRET" in out
+    out, _ = run("token", "list")
+    assert "tok-1" in out and "maintainer" in out and "active" in out
+    run("--yes", "token", "revoke", "tok-1")
+
+
+def test_a_token_cannot_be_created_as_owner(run: Run) -> None:
+    run("use", "acme", PROJECT)
+    _, err = run("token", "create", "--role", "owner", "--label", "CI", expect=2)
+    assert "never be an owner" in err
+
+
+def test_login_stores_a_project_token_without_asking_who_it_is(run: Run, bff: FakeBff) -> None:
+    out, _ = run("login", "--token", "coho_pt_" + "a" * 43)
+    assert "project token" in out
+    assert not any(r.path == "/api/v1/me" for r in bff.requests)

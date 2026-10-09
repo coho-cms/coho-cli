@@ -8,6 +8,7 @@ import typer
 
 from .._io import read_json
 from .._output import console, emit_json, record, say, table
+from .._slugs import type_slug
 from .._state import Usage, get_state
 
 app = typer.Typer(help="Content types, as resolved on the current ref.", no_args_is_help=True)
@@ -59,7 +60,6 @@ def get(ctx: typer.Context, slug: Annotated[str, typer.Argument()]) -> None:
 @app.command("put")
 def put(
     ctx: typer.Context,
-    slug: Annotated[str, typer.Argument()],
     file: Annotated[
         str,
         typer.Option("--file", "-f", help="The definition: a path, `-` for stdin, or inline JSON."),
@@ -73,11 +73,21 @@ def put(
     confirm_destructive: Annotated[
         bool, typer.Option("--confirm-destructive", help="Allow field/locale removal.")
     ] = False,
+    slug: Annotated[
+        str | None,
+        typer.Argument(
+            help="The type's slug. Omit it to build one from the definition's _name, camelCase."
+        ),
+    ] = None,
 ) -> None:
     """Create or update a content type from a JSON definition.
 
     The file holds the definition itself (`{"_name": …, "fields": […]}`) or a wrapper
     `{"definition": …}`. Creating needs no ETag; updating needs --if-match or --force.
+
+    With no SLUG, the slug is built from `_name` in camelCase ("Blog post" -> blogPost).
+    That slug is fixed once the type exists: renaming `_name` without passing the old
+    slug creates a second type rather than renaming this one.
     """
     state = get_state(ctx)
     doc = read_json(file, what="definition")
@@ -85,6 +95,11 @@ def put(
         raise Usage("the definition must be a JSON object")
     definition = doc["definition"] if "definition" in doc and "fields" not in doc else doc
     confirm = confirm_destructive or bool(doc.get("confirmDestructive"))
+    if slug is None:
+        name = definition.get("_name") if isinstance(definition, dict) else None
+        if not isinstance(name, str) or not name.strip():
+            raise Usage("no SLUG given and the definition has no _name to build one from")
+        slug = type_slug(name)
     api = state.ref().types
     etag = if_match
     if etag is None and not force:

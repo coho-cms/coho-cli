@@ -2,19 +2,25 @@
 
 ## Credentials
 
-Set `COHO_ACCESS_TOKEN`. It overrides the keyring and needs no config file:
+Create a project token for the job — the least role it needs — and store it as a CI
+secret:
+
+```bash
+coho token create --role maintainer --label "GitHub Actions" --expires 90
+```
 
 ```yaml
 env:
   COHO_URL: https://staging.coho.example
-  COHO_ACCESS_TOKEN: ${{ secrets.COHO_TOKEN }}
-  COHO_ACCOUNT: acme
+  COHO_TOKEN: ${{ secrets.COHO_TOKEN }}
+  COHO_ACCOUNT: 0192b4…   # ids, not names: a token cannot look names up
   COHO_PROJECT: 0192c5…
   COHO_OUTPUT: json
 ```
 
-⚠️ Until service accounts exist, this token carries a person's identity. Scope it to the
-job and rotate it. It expires; there is no refresh for a token supplied this way.
+It overrides the keyring and needs no config file. It works only for that project's
+content, expires (90 days by default, 365 at most), and `coho token revoke` stops it on
+its next request. `coho token list` shows when each was last used.
 
 ## Output
 

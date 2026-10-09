@@ -20,9 +20,12 @@ more: --offset 100, or --all
 The entry and its ETag. `--fields` prints only the fields object — for editing and
 feeding back to `put --file`.
 
-## `coho entry create -t TYPE -s SLUG [-f FIELDS] [--set PATH=VALUE …]`
+## `coho entry create -t TYPE [-s SLUG] [-f FIELDS] [--set PATH=VALUE …]`
 
-`POST …/entries`. Fields come from `--file` (path, `-`, or inline JSON — either the
+`POST …/entries`. With no `-s`, the slug is built from `_name` in kebab-case: `Hello, World!`
+becomes `hello-world`. An entry with no `_name` and no `-s` is refused before anything is sent.
+
+Fields come from `--file` (path, `-`, or inline JSON — either the
 fields object or a document with a `fields` key) and/or `--set`.
 
 `--set path=value` sets a dotted path; the value is parsed as JSON when it parses and

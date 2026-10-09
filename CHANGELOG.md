@@ -6,6 +6,12 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `coho type put` and `coho entry create` build the slug from the name when none is given:
+  camelCase for a type (`Blog post` → `blogPost`), kebab-case for an entry (`Hello, World!` →
+  `hello-world`). An explicit slug is sent unchanged.
+
 ### Changed
 
 - `coho signup` opens the BFF's sign-up page in the browser, as `coho login` opens the

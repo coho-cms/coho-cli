@@ -29,6 +29,7 @@ Global options: `-p/--profile`, `-o/--output table|json`, `--url`, `--account`,
 | [env](env.md) | `env list/show/create/unset/delete/history`, `promote`, `rollback` |
 | [tier](tier.md) | `tier list/create/delete` |
 | [key](key.md) | `key create/list/revoke/public` |
+| [token](token.md) | `token create/list/revoke` — project tokens for automation |
 | [export](export.md) | `export` |
 | [preview](preview.md) | `preview entries/entry` |
 

@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 from coho_management_sdk import auth as sdk_auth
+from coho_management_sdk.client import PROJECT_TOKEN_PREFIX
 from coho_management_sdk.errors import NotLoggedIn, Unauthenticated
 from coho_management_sdk.profiles import DEFAULT_SCOPES, Profile
 
@@ -43,6 +44,14 @@ def login(
     store = sdk_auth.token_store_for(profile)
     if token:
         store.save(profile.name, sdk_auth.TokenSet(access_token=token))
+        if token.startswith(PROJECT_TOKEN_PREFIX):
+            # A project token is not a person: there is no /me to confirm it with.
+            say(
+                state,
+                f"Stored a project token for profile [bold]{profile.name}[/bold]. It works only "
+                "for its project's content: set the account and project by id with `coho use`.",
+            )
+            return
         say(state, f"Stored a token for profile [bold]{profile.name}[/bold].")
     else:
         if not profile.can_login:

@@ -100,6 +100,7 @@ Project names are accepted anywhere a project is expected, including `--project`
 | `COHO_PROFILE` | profile to use |
 | `COHO_URL` | override the profile's BFF URL |
 | `COHO_ACCOUNT`, `COHO_PROJECT`, `COHO_REF` | override the context |
+| `COHO_TOKEN` | a project token for automation; wins over everything |
 | `COHO_ACCESS_TOKEN` | use this bearer token, ignoring the store |
 | `COHO_OUTPUT` | `table` or `json` |
 | `COHO_CONFIG_DIR` | where `config.toml` and `credentials.json` live |

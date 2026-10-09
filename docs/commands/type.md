@@ -10,9 +10,14 @@ Slug, display name, field ids, version.
 
 The type with its fields and **ETag**. `-o json` includes `etag`.
 
-## `coho type put SLUG --file DEF [--if-match ETAG | --force] [--confirm-destructive]`
+## `coho type put [SLUG] --file DEF [--if-match ETAG | --force] [--confirm-destructive]`
 
 `PUT …/types/{slug}`. Requires `content:write`.
+
+With no SLUG, the slug is built from `_name` in camelCase: `Blog post` becomes `blogPost`,
+and `SEO description` becomes `seoDescription`. A name with no letters, or one that starts
+with a digit, needs an explicit SLUG. The slug is fixed once the type exists. Renaming
+`_name` with no SLUG therefore creates a second type. Pass the old slug to rename one.
 
 `--file` is a path, `-` for stdin, or inline JSON, holding either the definition
 (`{"_name": …, "fields": […]}`) or a wrapper `{"definition": …, "confirmDestructive": …}`.

@@ -71,11 +71,23 @@ If the keyring is unusable (headless Linux without a Secret Service, the package
 missing), the SDK silently falls back to the file. Set `--token-store file` explicitly
 on a machine where you want that to be the rule.
 
+## `COHO_TOKEN`: a project token, for automation
+
+A project token (`coho token create`, `coho_pt_…`) is automation's own credential: one
+role in one project, an expiry, and revocable by the project's owners. Set it as
+`COHO_TOKEN` and it wins over anything stored. It is sent as it is, never refreshed, and
+works only for that project's content — not `whoami`, account commands, or listing and
+creating projects — so give the account and project by id (`COHO_ACCOUNT`,
+`COHO_PROJECT`): there is no `/me` to look a name up in.
+
+To try one on your own machine instead, `coho login --token coho_pt_…` stores it in the
+profile like any other token, then `coho use <account-id> <project-id>`.
+
 ## `COHO_ACCESS_TOKEN`
 
-If set, this wins over anything stored: for CI, and as a stopgap. It carries a
-**person's** identity — service accounts are not built yet — so scope it to the job and
-rotate it. There is no refresh for a token supplied this way.
+A person's access token, used as it is. It wins over anything stored except `COHO_TOKEN`.
+It carries that person's identity and every role they hold, and has no refresh — prefer
+a project token for automation.
 
 ## Sign-up and invitations
 

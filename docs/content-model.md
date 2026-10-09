@@ -36,12 +36,19 @@ A content type is a JSON definition with a display name and a list of fields:
 | `omitted` | Phase one of removing a field: hidden from the API, data retained, reversible. |
 | `of` | Required on `reference` (target content types) and `repeater` (component types); rejected elsewhere. |
 | `many` | `reference` only: the value is an array of ids. |
-| `min`, `max` | Bounds on collections and numbers. |
+| `min`, `max` | Bounds on collections and numbers. For `multichoice`, the number of values chosen. |
+| `values` | Required on `choice` and `multichoice`: the permitted strings. Unique, non-empty. |
+| `textFormat` | On `longText` only: `plain` (the default), `markdown` or `html`. Metadata for consumers; the value is stored as given. |
 
 ### Field types (wire names)
 
 `text`, `longText`, `number`, `integer`, `boolean`, `datetime`, `json`, `reference`,
-`repeater`.
+`repeater`, `choice`, `multichoice`.
+
+A `choice` is one string from `values`, a closed list the type defines. A `multichoice`
+is a set of them. Removing a value from the list does not discard stored entries, but
+an entry still holding it is refused on its next save until it is corrected.
+Use `reference` for anything that needs its own record, such as tags or authors.
 
 `repeater` and `json` are stored but not indexed, so delivery can neither sort nor
 filter on them.
@@ -61,6 +68,10 @@ change. Deleting a type that still has entries is refused with `TYPE_IN_USE`;
 blind update of an existing type with a usage error before sending anything.
 
 ## Entries
+
+Slugs are built by the client from the name and checked by the server. A type slug is
+**camelCase** (`blogPost`); a content slug is **kebab-case** (`hello-world`). Anything
+else is refused with `INVALID_SLUG`.
 
 An entry is `{id, type, slug, version, fields}`. The slug is stamped by the writer as
 `_slug` and carries forward on update; an update sends fields, not identity.

@@ -10,6 +10,7 @@ from coho_management_sdk.models import Entry
 
 from .._io import parse_set, read_json, set_path
 from .._output import console, emit_json, record, say, table
+from .._slugs import content_slug
 from .._state import State, Usage, get_state
 
 app = typer.Typer(help="Entries on the current ref.", no_args_is_help=True)
@@ -85,8 +86,13 @@ def create(
     ctx: typer.Context,
     type_: Annotated[str, typer.Option("--type", "-t", help="Content type slug.")],
     slug: Annotated[
-        str, typer.Option("--slug", "-s", help="The entry's slug, stamped as `_slug`.")
-    ],
+        str | None,
+        typer.Option(
+            "--slug",
+            "-s",
+            help="The entry's slug, stamped as `_slug`. Omit it to build one from `_name`.",
+        ),
+    ] = None,
     file: Annotated[
         str | None,
         typer.Option("--file", "-f", help="Fields JSON: path, `-` for stdin, or inline."),
@@ -98,9 +104,18 @@ def create(
         ),
     ] = None,
 ) -> None:
-    """Create an entry from a fields document and/or --set values."""
+    """Create an entry from a fields document and/or --set values.
+
+    With no --slug, the slug is built from `_name` in kebab-case ("Hello, World!" ->
+    hello-world). The slug is fixed once created; renaming `_name` does not change it.
+    """
     state = get_state(ctx)
     fields = _fields(file, set_)
+    if slug is None:
+        name = fields.get("_name")
+        if not isinstance(name, str) or not name.strip():
+            raise Usage("no --slug given and the entry has no _name to build one from")
+        slug = content_slug(name)
     e = state.ref().entries.create(type=type_, slug=slug, fields=fields)
     _created_or_updated(state, e)
 
