@@ -5,9 +5,21 @@ from __future__ import annotations
 from typing import Annotated
 
 import typer
+from coho_management_sdk.errors import CohoError
 
 from .._output import console, record, say
-from .._state import Usage, get_state
+from .._state import State, Usage, get_state
+
+
+def _account_name(state: State, account_id: str) -> str | None:
+    """The account's name, from the server. None when it can't be had (signed out, offline),
+    so `status` falls back to the id alone rather than failing."""
+    try:
+        return next(
+            (m.account_name for m in state.coho.accounts() if m.account_id == account_id), None
+        )
+    except (CohoError, Usage):
+        return None
 
 
 def use(
@@ -63,12 +75,14 @@ def status(ctx: typer.Context) -> None:
     profile = state.profile
     c = state.context
     project_name = profile.project_name(c.account, c.project) if c.account and c.project else None
+    account_name = _account_name(state, c.account) if c.account else None
     record(
         state,
         {
             "profile": profile.name,
             "url": state.config.effective_url(profile),
             "account": c.account,
+            "accountName": account_name,
             "project": c.project,
             "projectName": project_name,
             "ref": c.ref,
@@ -76,8 +90,8 @@ def status(ctx: typer.Context) -> None:
         [
             ("profile", profile.name),
             ("url", state.config.effective_url(profile) or None),
-            ("account", c.account),
-            ("project", f"{c.project}  ({project_name})" if project_name else c.project),
+            ("account", f"{account_name} ({c.account})" if account_name else c.account),
+            ("project", f"{project_name}  ({c.project})" if project_name else c.project),
             ("ref", c.ref),
         ],
     )

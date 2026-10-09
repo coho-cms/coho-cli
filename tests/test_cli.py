@@ -105,6 +105,16 @@ def test_use_finds_a_project_by_its_server_name_without_any_local_memory(run: Ru
     assert PROJECT in out
 
 
+def test_status_shows_name_then_id_for_account_and_project(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("status")
+    assert f"account  Acme ({ACCOUNT})" in out
+    assert f"project  Marketing site  ({PROJECT})" in out
+    out, _ = run("-o", "json", "status")
+    body = json.loads(out)
+    assert body["accountName"] == "Acme" and body["projectName"] == "Marketing site"
+
+
 def test_two_projects_with_one_name_must_be_chosen_by_id(
     run: Run, monkeypatch: pytest.MonkeyPatch
 ) -> None:
