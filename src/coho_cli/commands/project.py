@@ -1,4 +1,4 @@
-"""project: create, show, list (local registry), register, forget."""
+"""project: create, show, list, register, forget."""
 
 from __future__ import annotations
 
@@ -59,25 +59,38 @@ def show(
 
 @app.command("list")
 def list_(ctx: typer.Context) -> None:
-    """Projects this CLI knows in the current account.
+    """Projects you can open in the current account, and your role on each.
 
-    ⚠️ The server has no project listing yet, so this is a local registry: projects
-    you created or opened with `coho use`/`coho project show`, plus any you
-    `coho project register`. It is per profile and per account.
+    The server's list, plus any project this CLI remembers locally (from
+    `coho project register`) that the server does not list for you, marked
+    `local only`: it was deleted, or your access was taken away.
     """
     state = get_state(ctx)
     acct = state.account()
-    known = state.profile.projects.get(acct.id, {})
+    server = acct.projects.list()
+    on_server = {p.id for p in server}
+    local_only = {
+        name: pid
+        for name, pid in state.profile.projects.get(acct.id, {}).items()
+        if pid not in on_server
+    }
     current = state.context.project
+    entries: list[dict[str, str | None]] = [
+        {"name": p.name, "id": p.id, "role": p.role, "source": "server"} for p in server
+    ]
+    entries += [
+        {"name": n, "id": i, "role": None, "source": "local"} for n, i in sorted(local_only.items())
+    ]
     table(
         state,
-        {"account": acct.id, "projects": [{"name": n, "id": i} for n, i in known.items()]},
-        ["", "PROJECT", "ID"],
-        [("*" if i == current else "", n, i) for n, i in sorted(known.items())],
-        empty="(none known locally — create one, or `coho project register <name> <id>`)",
+        {"account": acct.id, "projects": entries},
+        ["", "PROJECT", "ID", "ROLE"],
+        [
+            ("*" if e["id"] == current else "", e["name"], e["id"], e["role"] or "local only")
+            for e in entries
+        ],
+        empty="(no projects yet — create one with `coho project create <name>`)",
     )
-    if state.output != "json" and known:
-        console.print("[dim]Local registry; the server does not list projects yet.[/dim]")
 
 
 @app.command("register")

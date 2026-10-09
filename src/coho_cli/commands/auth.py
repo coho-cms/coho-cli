@@ -134,7 +134,7 @@ def signup(
         bool, typer.Option("--no-browser", help="Print the URL instead of opening it.")
     ] = False,
 ) -> None:
-    """Found a new account, in the browser. Then run `coho login`.
+    """Create a new account, in the browser. Then run `coho login`.
 
     Opens the sign-up page, like `coho login` opens the sign-in page, and makes no
     API call itself: sign-up is an interactive browser session on purpose. You

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import cached_property
+from uuid import UUID
 
 import typer
 from coho_management_sdk import Account, Coho, Config, Profile, Project, Ref
@@ -78,9 +79,23 @@ class State:
 
     def account(self) -> Account:
         name = self.context.account
-        if not name:
-            raise Usage("no account in context. Run `coho use <account>` or pass --account.")
-        return self.coho.account(name)
+        if name:
+            return self.coho.account(name)
+        # No account chosen. Someone in exactly one account has nothing to choose,
+        # so that one is used; with several, guessing would act on the wrong one.
+        memberships = self.coho.accounts()
+        if len(memberships) == 1:
+            return self.coho.account(memberships[0].account_id)
+        if not memberships:
+            raise Usage(
+                "you are not in any account yet. Create one with `coho signup`, "
+                "or ask an account admin to invite you."
+            )
+        names = ", ".join(sorted(m.account_name for m in memberships))
+        raise Usage(
+            f"you are in {len(memberships)} accounts ({names}). "
+            "Choose one with `coho use <account>` or pass --account."
+        )
 
     def project(self) -> Project:
         account = self.account()
@@ -89,8 +104,26 @@ class State:
             raise Usage(
                 "no project in context. Run `coho use <account> <project>` or pass --project."
             )
-        project_id = self.profile.resolve_project(account.id, raw)
-        return account.project(project_id)
+        return account.project(self.resolve_project_id(account, raw))
+
+    def resolve_project_id(self, account: Account, raw: str) -> str:
+        """A project id from an id, a locally remembered name, or a name on the server.
+
+        The local registry answers first and without a request; an id passes
+        through; anything else is matched by name against the projects the server
+        lists for you. Two projects with the same name are refused rather than
+        guessed between.
+        """
+        known = self.profile.resolve_project(account.id, raw)
+        if known != raw or _is_uuid(raw):
+            return known
+        matches = [p for p in account.projects.list() if p.name.casefold() == raw.casefold()]
+        if len(matches) == 1:
+            return matches[0].id
+        if not matches:
+            raise Usage(f"no project named '{raw}' that you can open. See `coho project list`.")
+        ids = ", ".join(p.id for p in matches)
+        raise Usage(f"{len(matches)} projects are named '{raw}' ({ids}). Use the id.")
 
     def ref(self) -> Ref:
         project = self.project()
@@ -111,3 +144,11 @@ def get_state(ctx: typer.Context) -> State:
         state = State()
         ctx.find_root().obj = state
     return state
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        UUID(value)
+    except ValueError:
+        return False
+    return True

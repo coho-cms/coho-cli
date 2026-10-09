@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
+from coho_management_sdk import testing
 from coho_management_sdk.profiles import Config
-from coho_management_sdk.testing import ACCOUNT, ENTRY, INVITATION_TOKEN, PROJECT, FakeBff
+from coho_management_sdk.testing import ACCOUNT, ENTRY, INVITATION_TOKEN, ME, PROJECT, FakeBff
 
 from coho_cli import __version__
 from conftest import Run
@@ -53,6 +54,68 @@ def test_whoami_json_is_the_contract_body(run: Run) -> None:
     body = json.loads(out)
     assert body["user"]["email"] == "ada@acme.example"
     assert "externalId" not in json.dumps(body)
+
+
+def test_the_only_account_is_used_when_none_is_chosen(run: Run) -> None:
+    out, _ = run("project", "list")
+    assert "no account" not in out.lower()
+
+
+def test_with_several_accounts_one_must_be_chosen(
+    run: Run, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    second = {
+        "accountId": "22222222-2222-4222-8222-000000000002",
+        "accountName": "Beta",
+        "role": "member",
+    }
+    monkeypatch.setitem(ME, "accounts", [*ME["accounts"], second])
+    _, err = run("project", "list", expect=2)
+    assert "2 accounts (Acme, Beta)" in err and "coho use" in err
+
+
+def test_with_no_account_signup_or_an_invitation_is_suggested(
+    run: Run, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(ME, "accounts", [])
+    _, err = run("project", "list", expect=2)
+    assert "coho signup" in err
+
+
+def test_project_list_shows_the_server_list_with_roles_and_local_leftovers(run: Run) -> None:
+    run("project", "register", PROJECT, "Marketing site")
+    out, _ = run("project", "list")
+    assert "Marketing site" in out and "owner" in out and "local only" not in out
+
+    # A remembered project the server no longer lists for you is shown, flagged.
+    gone = "77777777-7777-4777-8777-777777777777"
+    cfg = Config.load()
+    cfg.profile("test").remember_project(ACCOUNT, "Old site", gone)
+    cfg.save()
+    out, _ = run("project", "list")
+    assert "Old site" in out and "local only" in out
+
+    data = json.loads(run("-o", "json", "project", "list")[0])
+    assert {p["source"] for p in data["projects"]} == {"server", "local"}
+
+
+def test_use_finds_a_project_by_its_server_name_without_any_local_memory(run: Run) -> None:
+    run("use", "acme", "marketing site")
+    out, _ = run("status")
+    assert PROJECT in out
+
+
+def test_two_projects_with_one_name_must_be_chosen_by_id(
+    run: Run, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    twin = {
+        "id": "88888888-8888-4888-8888-888888888888",
+        "name": "Marketing site",
+        "role": "author",
+    }
+    monkeypatch.setattr(testing, "PROJECTS", [*testing.PROJECTS, twin])
+    _, err = run("use", "acme", "Marketing site", expect=2)
+    assert "2 projects are named" in err and twin["id"] in err
 
 
 def test_project_create_sets_context_and_registry(run: Run, home: Path) -> None:

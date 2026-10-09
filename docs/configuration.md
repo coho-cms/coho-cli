@@ -78,20 +78,20 @@ the flag and the `use` command.
 
 ## The local project registry
 
-⚠️ The server has no "list projects" endpoint yet (`coho-data` doc 04 §9 explains why:
-tenancy). So the CLI keeps a **per-profile, per-account** table of the projects it has
-seen: created with `project create`, opened with `use` or `project show`, or added
-with `project register`.
+A **per-profile, per-account** table of the projects this CLI has seen: created with
+`project create`, opened with `use` or `project show`, or added with `project
+register`. It is a cache now rather than the only source: `coho project list` asks the
+server, and a project name the registry does not know is looked up there too. What it
+still adds is offline name lookup and your own names for projects.
 
 ```
-coho project list                          # what this CLI knows, locally
+coho project list                          # the server's list, plus local leftovers
 coho project register <id> [NAME]          # check it exists, then remember it
 coho project forget <name-or-id>           # local only
 ```
 
-Names in the registry are accepted anywhere a project is expected, including `--project`
-and `COHO_PROJECT`. When the server gains a listing, `project list` will use it and the
-registry becomes a cache.
+Project names are accepted anywhere a project is expected, including `--project` and
+`COHO_PROJECT`: the registry answers first, then the server's list.
 
 ## Environment variables
 

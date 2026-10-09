@@ -12,8 +12,10 @@ trunk), `qa`, `stage`, `prod` (snapshot, unset).
 Records the project in the [local registry](../configuration.md#the-local-project-registry)
 and, unless `--no-use`, makes it the current project with `v0.0.x` as the current ref.
 
-Refusals: `PLAN_LIMIT` (project cap), `NOT_FOUND` (not a member of the account —
-deliberately indistinguishable from a non-existent account).
+Refusals: `PLAN_LIMIT` (project cap), `PROJECT_NAME_TAKEN` (another project in the
+account has that name, ignoring case and surrounding spaces — even one you cannot see),
+`NOT_FOUND` (not a member of the account — deliberately indistinguishable from a
+non-existent account).
 
 ## `coho project show [PROJECT]`
 
@@ -22,9 +24,11 @@ records the project in the registry.
 
 ## `coho project list`
 
-⚠️ Local. The server has no listing endpoint yet (`coho-data` doc 04 §9), so this
-shows the projects this profile has created, opened or registered for the current
-account. `*` marks the current one.
+`GET /api/v1/accounts/{account}/projects`: every project in the current account you
+can open, and your role on each — all of them, as `owner`, for an account admin; the
+ones granted to you otherwise. `*` marks the current one. A project the local
+registry remembers but the server no longer lists for you (deleted, or your access
+removed) is shown as `local only`.
 
 ## `coho project register ID [NAME]`
 

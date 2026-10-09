@@ -13,9 +13,7 @@ from .._state import Usage, get_state
 def use(
     ctx: typer.Context,
     account: Annotated[str | None, typer.Argument(help="Account id or name.")] = None,
-    project: Annotated[
-        str | None, typer.Argument(help="Project id, or a name this CLI created/registered.")
-    ] = None,
+    project: Annotated[str | None, typer.Argument(help="Project name or id.")] = None,
     ref: Annotated[str | None, typer.Argument(help="Branch, tag or environment.")] = None,
     clear: Annotated[bool, typer.Option("--clear", help="Forget the saved context.")] = False,
 ) -> None:
@@ -42,7 +40,7 @@ def use(
     profile.context.account = acct.id
 
     if project is not None:
-        pid = profile.resolve_project(acct.id, project)
+        pid = state.resolve_project_id(acct, project)
         proj = acct.project(pid)
         info = proj.info()  # verifies it exists and that we can see it
         profile.remember_project(acct.id, info.name, info.id)

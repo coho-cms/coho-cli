@@ -6,7 +6,7 @@ Sets the sticky context for the current profile. Each argument is verified again
 server before it is saved:
 
 - `ACCOUNT`: an account id or name from `/api/v1/me` (names are case-insensitive).
-- `PROJECT`: a project id, or a name in the [local registry](../configuration.md#the-local-project-registry).
+- `PROJECT`: a project id, or its name: the [local registry](../configuration.md#the-local-project-registry) answers first, then the projects the server lists for you. Names are unique in an account, ignoring case.
   The project is fetched, and its name is recorded in the registry.
 - `REF`: a branch, tag or environment; fetched with `GET …/refs/{ref}`.
 
