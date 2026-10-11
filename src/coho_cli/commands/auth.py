@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
 from typing import Annotated
 
 import typer
@@ -12,6 +14,10 @@ from coho_management_sdk.profiles import DEFAULT_SCOPES, Profile
 
 from .._output import console, record, say, table, warn
 from .._state import State, Usage, get_state
+
+# How often `coho login` asks whether the account exists yet, while the person finishes
+# setting it up in a browser. A module constant so a test can shorten it.
+ACCOUNT_POLL_SECONDS = 3.0
 
 
 def login(
@@ -80,8 +86,51 @@ def login(
         )
         store.save(profile.name, tokens)
         say(state, f"Signed in to profile [bold]{profile.name}[/bold].")
-    # Confirm the token works, and show who we are.
+        # Confirm the token works, and show who we are. An identity with no organization
+        # finishes in the browser first (UL-19), and this waits for it there.
+        _print_me(
+            state,
+            just_signed_in=True,
+            finish=lambda: _finish_in_browser(state, no_browser, timeout),
+        )
+        return
     _print_me(state, just_signed_in=True)
+
+
+def _finish_in_browser(state: State, no_browser: bool, timeout: int) -> None:
+    """Send an identity with no organization to the BFF's sign-in, which asks for one (UL-19).
+
+    The CLI signs in at the identity provider directly, so the BFF never saw this
+    identity and cannot ask it anything; its own sign-in can. That means the password
+    a second time, once, for an identity in this state. Then this waits for the account
+    to exist, which is the same token answering `/me`.
+    """
+    import webbrowser
+
+    url = state.coho.login_url()
+    say(
+        state,
+        "Coho has no organization for this identity yet. Finish setting up in your browser: "
+        "sign in there once more, then name your organization.",
+    )
+    if no_browser:
+        console.print("Open this URL in a browser:\n", highlight=False)
+        console.print(url, markup=False, highlight=False, soft_wrap=True)
+    else:
+        webbrowser.open(url)
+    say(state, "Waiting for your organization… (Ctrl-C to stop)")
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        time.sleep(ACCOUNT_POLL_SECONDS)
+        try:
+            state.coho.me(refresh=True)
+            return
+        except Unauthenticated:
+            continue
+    raise Usage(
+        "still no organization for this identity. Once you have named it in the browser, "
+        "run `coho whoami`."
+    )
 
 
 def logout(ctx: typer.Context) -> None:
@@ -96,7 +145,12 @@ def whoami(ctx: typer.Context) -> None:
     _print_me(get_state(ctx))
 
 
-def _print_me(state: State, *, just_signed_in: bool = False) -> None:
+def _print_me(
+    state: State,
+    *,
+    just_signed_in: bool = False,
+    finish: Callable[[], object] | None = None,
+) -> None:
     try:
         me = state.coho.me()
     except NotLoggedIn:
@@ -107,11 +161,14 @@ def _print_me(state: State, *, just_signed_in: bool = False) -> None:
         # The provider has just issued this token, so it is not stale. The auth
         # service gives UNAUTHENTICATED for an identity it has no account for
         # too, on purpose (LG-5), and right after a sign-in that is the likely one.
-        raise Usage(
-            "you signed in, but Coho has no account for this identity yet. "
-            "Run `coho signup <account name>` and choose Sign in on the provider's page "
-            "to found one, or accept an invitation to join one."
-        ) from None
+        if finish is None:
+            raise Usage(
+                "you signed in, but Coho has no account for this identity yet. Sign in at "
+                f"{state.coho.login_url()} in a browser to name your organization, or accept "
+                "an invitation to join one."
+            ) from None
+        finish()
+        me = state.coho.me(refresh=True)
     if state.output == "json":
         record(state, me.raw, [])
         return

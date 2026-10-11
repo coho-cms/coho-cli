@@ -8,6 +8,10 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho login` finishes setting up an identity that has no organization yet: it opens the
+  BFF's sign-in in the browser, which asks for the organization's name, and waits until the
+  account exists. That sign-in asks for the password once more, because the CLI's own sign-in
+  never reaches the BFF. `coho login --token` with such an identity says where to go instead.
 - `coho type put` and `coho entry create` build the slug from the name when none is given:
   camelCase for a type (`Blog post` → `blogPost`), kebab-case for an entry (`Hello, World!` →
   `hello-world`). An explicit slug is sent unchanged.

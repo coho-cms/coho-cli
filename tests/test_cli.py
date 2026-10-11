@@ -353,8 +353,59 @@ def test_login_explains_an_identity_with_no_coho_account(
     monkeypatch.delenv("COHO_ACCESS_TOKEN")
     _, err = run("login", "--token", "valid-but-unknown-identity", expect=2)
     text = " ".join(err.split())  # the terminal wraps long lines; compare the words
-    assert "no account for this identity" in text and "coho signup" in text
+    assert "no account for this identity" in text and "/auth/login" in text
     assert "UNAUTHENTICATED" not in text
+
+
+def _signs_in_as(monkeypatch: pytest.MonkeyPatch, run: Run, token: str) -> None:
+    """The browser sign-in, faked: the profile can log in, and the provider hands back [token]."""
+    from coho_management_sdk import auth as sdk_auth
+
+    import coho_cli.commands.auth as cli_auth
+
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    run(
+        "configure",
+        "--profile",
+        "test",
+        "--oidc-domain",
+        "https://auth.example",
+        "--client-id",
+        "coho-cli",
+    )
+    monkeypatch.setattr(sdk_auth, "login", lambda *a, **k: sdk_auth.TokenSet(access_token=token))
+    monkeypatch.setattr(cli_auth, "ACCOUNT_POLL_SECONDS", 0.01)
+
+
+def test_login_with_no_organization_finishes_in_the_browser_and_waits_for_it(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UL-19: the CLI's sign-in never passes the BFF, so it sends the person to the BFF's
+    sign-in, which asks for the organization, and waits until the account exists."""
+    _signs_in_as(monkeypatch, run, "fresh-token")
+    opened: list[str] = []
+
+    def finish_in_browser(url: str) -> bool:
+        opened.append(url)
+        bff.tokens.add("fresh-token")  # the person named their organization
+        return True
+
+    monkeypatch.setattr("webbrowser.open", finish_in_browser)
+    out, _ = run("login")
+
+    assert opened == [f"{bff.url}/auth/login?returnTo=%2Fapi%2Fv1%2Fme"]
+    text = " ".join(out.split())
+    assert "Finish setting up in your browser" in text
+    assert "ada@acme.example" in text  # and then who we are, as any login shows
+
+
+def test_login_that_is_never_finished_stops_waiting_and_says_what_next(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _signs_in_as(monkeypatch, run, "never-finished")
+    out, err = run("login", "--no-browser", "--timeout", "0", expect=2)
+    assert f"{bff.url}/auth/login?returnTo=%2Fapi%2Fv1%2Fme" in out
+    assert "coho whoami" in " ".join(err.split())
 
 
 def test_whoami_with_a_rejected_token_still_says_unauthenticated(
