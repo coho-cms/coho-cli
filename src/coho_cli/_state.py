@@ -41,6 +41,9 @@ class State:
     overrides: Context = field(default_factory=Context)
     quiet: bool = False
     yes: bool = False
+    # Set when the account came from the saved context rather than `--account`, so an
+    # ACCOUNT_NOT_FOUND can say the saved one may be gone: deleted, or a reset environment.
+    used_saved_account: bool = field(default=False, init=False)
 
     @cached_property
     def config(self) -> Config:
@@ -80,6 +83,7 @@ class State:
     def account(self) -> Account:
         name = self.context.account
         if name:
+            self.used_saved_account = not self.overrides.account
             return self.coho.account(name)
         # No account chosen. Someone in exactly one account has nothing to choose,
         # so that one is used; with several, guessing would act on the wrong one.
@@ -136,6 +140,10 @@ class State:
 
     def save(self) -> None:
         self.config.save()
+
+
+# The running command's state, for `main` to read once an error has escaped the command.
+current: State | None = None
 
 
 def get_state(ctx: typer.Context) -> State:

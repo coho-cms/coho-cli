@@ -408,6 +408,33 @@ def test_login_that_is_never_finished_stops_waiting_and_says_what_next(
     assert "coho whoami" in " ".join(err.split())
 
 
+def _save_account(home: Path, account: str) -> None:
+    from coho_management_sdk.profiles import Config
+
+    cfg = Config.load(home / "config.toml")
+    cfg.profile("test").context.account = account
+    cfg.save()
+
+
+def test_a_saved_account_that_is_gone_says_to_choose_again(run: Run, home: Path) -> None:
+    """A context saved before the environment was reset names an account that no longer
+    exists: say that, and how to pick the new one, rather than a bare not-found."""
+    from coho_management_sdk.testing import GONE_ACCOUNT
+
+    _save_account(home, GONE_ACCOUNT)
+    _, err = run("project", "list", expect=5)
+    text = " ".join(err.split())
+    assert "ACCOUNT_NOT_FOUND" in text
+    assert "saved with `coho use`" in text and "coho use <account>" in text
+
+
+def test_an_account_named_on_the_command_line_gets_no_hint_about_the_saved_one(run: Run) -> None:
+    from coho_management_sdk.testing import GONE_ACCOUNT
+
+    _, err = run("--account", GONE_ACCOUNT, "project", "list", expect=5)
+    assert "ACCOUNT_NOT_FOUND" in err and "saved with" not in err
+
+
 def test_whoami_with_a_rejected_token_still_says_unauthenticated(
     run: Run, monkeypatch: pytest.MonkeyPatch
 ) -> None:

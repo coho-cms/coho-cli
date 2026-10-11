@@ -12,6 +12,9 @@ All notable changes to `coho-cli`. The format follows
   BFF's sign-in in the browser, which asks for the organization's name, and waits until the
   account exists. That sign-in asks for the password once more, because the CLI's own sign-in
   never reaches the BFF. `coho login --token` with such an identity says where to go instead.
+- An account saved with `coho use` that no longer exists — remembered from before an
+  environment was reset — now says so, and how to choose another, instead of a bare
+  `ACCOUNT_NOT_FOUND`. An account given with `--account` gets no such hint.
 - `coho type put` and `coho entry create` build the slug from the name when none is given:
   camelCase for a type (`Blog post` → `blogPost`), kebab-case for an entry (`Hello, World!` →
   `hello-world`). An explicit slug is sent unchanged.

@@ -13,6 +13,7 @@ import typer
 from coho_management_sdk import CohoError
 from coho_management_sdk import __version__ as sdk_version
 from coho_management_sdk.errors import (
+    AccountNotFound,
     AuthError,
     EnvironmentMoved,
     MergeConflict,
@@ -26,7 +27,7 @@ from coho_management_sdk.profiles import Context
 from rich.console import Console
 from rich.text import Text
 
-from . import __version__
+from . import __version__, _state
 from ._output import console
 from ._state import EXIT_AUTH, EXIT_CONFLICT, EXIT_ERROR, EXIT_NOT_FOUND, State, Usage
 from .commands import (
@@ -139,6 +140,7 @@ def _root(
         quiet=quiet,
         yes=yes,
     )
+    _state.current = ctx.obj
 
 
 # Top-level verbs (no noun): the ones people type most.
@@ -233,6 +235,15 @@ def main() -> None:
         sys.exit(exc.exit_code)
     except CohoError as exc:
         _print_error(exc)
+        if (
+            isinstance(exc, AccountNotFound)
+            and _state.current is not None
+            and _state.current.used_saved_account
+        ):
+            err.print(
+                "That is the account saved with `coho use`, and it may no longer exist. "
+                "`coho whoami` lists yours; choose one with `coho use <account>`."
+            )
         sys.exit(_exit_code(exc))
     except KeyboardInterrupt:
         sys.exit(130)
