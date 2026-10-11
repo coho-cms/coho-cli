@@ -416,16 +416,52 @@ def _save_account(home: Path, account: str) -> None:
     cfg.save()
 
 
-def test_a_saved_account_that_is_gone_says_to_choose_again(run: Run, home: Path) -> None:
+def test_a_saved_account_that_is_gone_gives_way_to_the_only_one(run: Run, home: Path) -> None:
     """A context saved before the environment was reset names an account that no longer
-    exists: say that, and how to pick the new one, rather than a bare not-found."""
-    from coho_management_sdk.testing import GONE_ACCOUNT
+    exists. Someone with one account gets that one, saved in its place, and is told once."""
+    from coho_management_sdk.profiles import Config
+    from coho_management_sdk.testing import ACCOUNT, GONE_ACCOUNT
 
     _save_account(home, GONE_ACCOUNT)
-    _, err = run("project", "list", expect=5)
+    out, err = run("project", "list")
+    assert "Marketing site" in out
+    assert "your only account" in " ".join(err.split())
+
+    saved = Config.load(home / "config.toml").profile("test").context
+    assert saved.account == ACCOUNT and saved.project is None and saved.ref is None
+
+    _, err = run("project", "list")
+    assert "warning" not in err  # quiet from then on
+
+
+def test_a_saved_account_that_is_gone_asks_which_when_there_are_several(
+    run: Run, home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from coho_management_sdk import testing
+    from coho_management_sdk.testing import GONE_ACCOUNT
+
+    second = {
+        "accountId": "44444444-4444-4444-8444-444444444444",
+        "accountName": "Globex",
+        "role": "member",
+    }
+    monkeypatch.setitem(testing.ME, "accounts", [*testing.ME["accounts"], second])
+    _save_account(home, GONE_ACCOUNT)
+    _, err = run("project", "list", expect=2)
     text = " ".join(err.split())
-    assert "ACCOUNT_NOT_FOUND" in text
-    assert "saved with `coho use`" in text and "coho use <account>" in text
+    assert "not one of yours" in text and "Acme, Globex" in text and "coho use <account>" in text
+
+
+def test_an_account_named_in_the_environment_is_used_as_given_and_nothing_is_rewritten(
+    run: Run, home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from coho_management_sdk.profiles import Config
+    from coho_management_sdk.testing import GONE_ACCOUNT
+
+    monkeypatch.setenv("COHO_ACCOUNT", GONE_ACCOUNT)
+    _, err = run("project", "list", expect=5)
+    assert "ACCOUNT_NOT_FOUND" in err and "saved with" not in err
+    assert Config.load(home / "config.toml").profile("test").context.account is None
 
 
 def test_an_account_named_on_the_command_line_gets_no_hint_about_the_saved_one(run: Run) -> None:

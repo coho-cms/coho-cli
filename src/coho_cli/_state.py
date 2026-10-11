@@ -14,6 +14,7 @@ from uuid import UUID
 
 import typer
 from coho_management_sdk import Account, Coho, Config, Profile, Project, Ref
+from coho_management_sdk.models import Membership
 from coho_management_sdk.profiles import Context
 
 EXIT_ERROR = 1
@@ -81,9 +82,19 @@ class State:
     # -- context resolution ----------------------------------------------------
 
     def account(self) -> Account:
+        # Named on the command line or in COHO_ACCOUNT: used as given, never second-guessed.
+        if self.overrides.account:
+            return self.coho.account(self.overrides.account)
         name = self.context.account
+        # ⚠️ A saved account can outlive the account: deleted, or an environment reset. Checked
+        # against `/me` (one request, cached for the command) so a person with one account is
+        # not stuck on one they no longer have. Not with a project token: it has no `/me`.
+        if name and not self.coho.uses_project_token:
+            memberships = self.coho.accounts()
+            if not any(name in (m.account_id, m.account_name) for m in memberships):
+                return self._instead_of_gone(name, memberships)
         if name:
-            self.used_saved_account = not self.overrides.account
+            self.used_saved_account = True
             return self.coho.account(name)
         # No account chosen. Someone in exactly one account has nothing to choose,
         # so that one is used; with several, guessing would act on the wrong one.
@@ -100,6 +111,37 @@ class State:
             f"you are in {len(memberships)} accounts ({names}). "
             "Choose one with `coho use <account>` or pass --account."
         )
+
+    def _instead_of_gone(self, gone: str, memberships: list[Membership]) -> Account:
+        """The saved account is not one of the caller's: their only one if they have one,
+        saved in its place, or a usage error that says what to choose."""
+        from ._output import warn
+
+        # Only ever the profile's: `--account` and COHO_ACCOUNT (its envvar) are used as given.
+        p = self.profile.name
+        if not memberships:
+            raise Usage(
+                "you are not in any account yet. Create one with `coho signup`, "
+                "or ask an account admin to invite you."
+            )
+        if len(memberships) > 1:
+            names = ", ".join(sorted(m.account_name for m in memberships))
+            raise Usage(
+                f"the account saved for profile '{p}' is not one of yours; it may have been "
+                f"deleted. You are in {len(memberships)} accounts ({names}): choose one with "
+                "`coho use <account>`."
+            )
+        only = memberships[0]
+        # As `coho use` does when the account changes: the project and ref were the gone account's.
+        self.profile.context.account = only.account_id
+        self.profile.context.project = None
+        self.profile.context.ref = None
+        self.save()
+        warn(
+            f"the account saved for profile '{p}' is not one of yours; it may have been "
+            f"deleted. Using {only.account_name}, your only account, from now on."
+        )
+        return self.coho.account(only.account_id)
 
     def project(self) -> Project:
         account = self.account()
