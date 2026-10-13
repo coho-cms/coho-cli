@@ -58,11 +58,15 @@ See [errors](errors.md). `4` means "re-read and retry" (`VERSION_CONFLICT`,
 
 ```bash
 set -euo pipefail
-coho tag create "v$VERSION" --branch v0.0.x -m "$NOTES"
+coho tag create "v$VERSION" --branch v0.0.x -m "$NOTES" --validate
 coho promote qa "v$VERSION" --timeout 600
 coho preview entries --ref qa --limit 1 >/dev/null     # smoke: qa resolves
 coho promote stage "v$VERSION"
 ```
+
+`--validate` stops the job before anything is tagged if an entry no longer matches its
+type (`TAG_CONTENT_INVALID`, exit 1); in JSON mode the refusal is printed as the problem
+document, `invalidEntries[]` included.
 
 ## The library instead
 
@@ -73,6 +77,6 @@ from coho_management_sdk import Coho, SnapshotNotReady
 
 coho = Coho(url=os.environ["COHO_URL"], token=os.environ["COHO_ACCESS_TOKEN"])
 site = coho.account("acme").project(os.environ["COHO_PROJECT"])
-site.tags.create(f"v{version}", branch="v0.0.x", description=notes)
+site.tags.create(f"v{version}", branch="v0.0.x", description=notes, validate=True)
 site.environments.promote("qa", f"v{version}", wait=True, timeout=600)
 ```

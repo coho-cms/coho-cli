@@ -9,9 +9,9 @@ different statuses from different tiers (`PLAN_LIMIT` is 409 from the auth tier 
 400 from authoring). **Never branch on status.**
 
 The CLI prints `error CODE: detail` on stderr, plus the problem's context fields
-(`permission`, `ref`, `slug`, `errors[]`, `conflicts[]`) when present. With
-`--output json`, a `MERGE_CONFLICT` prints the whole problem document on stdout so a
-script can read the conflicts.
+(`permission`, `ref`, `slug`, `errors[]`, `conflicts[]`, `invalidEntries[]`) when
+present. With `--output json`, a `MERGE_CONFLICT` or a `TAG_CONTENT_INVALID` prints the
+whole problem document on stdout so a script can read the conflicts or the entries.
 
 ## Exit codes
 
@@ -52,6 +52,7 @@ script can read the conflicts.
 | `BRANCH_TOO_DEEP` | 400 | `depth`, `maxDepth` | |
 | `CANNOT_BRANCH_FROM` | 400 | `ref` | |
 | `INVALID_BRANCH_POINT`, `INVALID_TAG_POINT` | 400 | | `--at` out of range |
+| `TAG_CONTENT_INVALID` | 400 | `entryCount`, `invalidEntries[]` | `tag create --validate` found invalid entries; nothing was tagged |
 | `MERGE_CONFLICT` | 400 | `conflicts[]` | needs resolutions |
 | `MERGE_RESOLUTION_REJECTED` | 400 | | a resolution does not apply |
 | `MERGE_REFS_MOVED` | 400 | | the refs changed since the diff you reviewed |

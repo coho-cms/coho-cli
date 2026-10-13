@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Annotated
 
 import typer
+from coho_management_sdk.errors import TagContentInvalid
 
-from .._output import record, table, warn
-from .._state import get_state
+from .._output import emit_json, record, table, warn
+from .._state import EXIT_ERROR, get_state
 
 app = typer.Typer(
     help="Tags: immutable, undeletable (branch, seq) coordinates.", no_args_is_help=True
@@ -42,15 +43,34 @@ def create(
         int | None,
         typer.Option("--at", help="Tag at an explicit sequence (default: the high-water mark)."),
     ] = None,
+    validate: Annotated[
+        bool,
+        typer.Option(
+            "--validate",
+            help="Check every entry at the tag point first, and tag nothing if one fails.",
+        ),
+    ] = False,
 ) -> None:
-    """Cut a tag on a version branch. Does not merge and does not validate."""
+    """Cut a tag on a version branch. Does not merge, and validates only with --validate.
+
+    On TAG_CONTENT_INVALID the failing entries are printed (the problem document with
+    --output json), and nothing is tagged.
+    """
     state = get_state(ctx)
     source = branch or state.context.ref
     if not source:
         from .._state import Usage
 
         raise Usage("--branch is required when no ref is in context")
-    t = state.project().tags.create(name, branch=source, description=description, at=at)
+    try:
+        t = state.project().tags.create(
+            name, branch=source, description=description, at=at, validate=validate
+        )
+    except TagContentInvalid as exc:
+        if state.output == "json":
+            emit_json(exc.problem)
+            raise typer.Exit(code=EXIT_ERROR) from None
+        raise
     record(state, t.raw, [("tag", t.name), ("branch", t.ref), ("at", t.at)])
     for w in t.warnings:
         warn(f"{w.code}: {w.message}")

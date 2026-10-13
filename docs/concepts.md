@@ -50,9 +50,10 @@ rather than repeating its content is what lets a resolution express *absence*. S
 
 ## Tag and promote: two decisions, two people
 
-`tag create` stamps a coordinate on a version branch. It does not merge and does not
-validate — a version branch tip is always valid, so there is nothing left to check.
-Requires `release:tag`.
+`tag create` stamps a coordinate on a version branch. It does not merge, and validates
+only with `--validate`: writes and merges validate, so a version branch tip is normally
+valid, but a type changed on the branch itself does not re-check its entries (see
+[tag](commands/tag.md#validating-a-release)). Requires `release:tag`.
 
 `promote ENV TARGET` repoints an environment. Requires `promote:<tier>` of that
 environment's tier — a different permission from tagging, on purpose: producing the

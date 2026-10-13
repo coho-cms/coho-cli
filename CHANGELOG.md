@@ -20,6 +20,13 @@ All notable changes to `coho-cli`. The format follows
 - `coho type put` and `coho entry create` build the slug from the name when none is given:
   camelCase for a type (`Blog post` → `blogPost`), kebab-case for an entry (`Hello, World!` →
   `hello-world`). An explicit slug is sent unchanged.
+- `coho tag create --validate` has the server check every entry at the tag point before
+  cutting the tag. If any fails, it is refused with `TAG_CONTENT_INVALID` and nothing is
+  tagged: the CLI prints how many entries fail, then each listed one's slug, type, id and
+  field errors, says how many went unlisted past the server's 100, and exits 1. With
+  `-o json` the problem document goes to stdout. Without the flag, tagging is unchanged.
+  Needs the `coho-management-sdk` that adds `tags.create(validate=…)`, and a server that
+  accepts `validate`.
 
 ### Changed
 

@@ -6,7 +6,15 @@ from pathlib import Path
 import pytest
 from coho_management_sdk import testing
 from coho_management_sdk.profiles import Config
-from coho_management_sdk.testing import ACCOUNT, ENTRY, INVITATION_TOKEN, ME, PROJECT, FakeBff
+from coho_management_sdk.testing import (
+    ACCOUNT,
+    ENTRY,
+    INVALID_ENTRIES_SHOWN,
+    INVITATION_TOKEN,
+    ME,
+    PROJECT,
+    FakeBff,
+)
 
 from coho_cli import __version__
 from conftest import Run
@@ -218,6 +226,89 @@ def test_diff_and_merge_conflict_exit_4(run: Run, tmp_path: Path) -> None:
     res.write_text(json.dumps([{"nodeId": ENTRY, "path": "title.en-US", "take": "source"}]))
     out, _ = run("-o", "json", "merge", "--into", "v0.0.x", "--resolve", str(res), "--reviewed")
     assert json.loads(out)["resolved"] == 1
+
+
+# What a tag cut with --validate finds wrong, worded as the server words it: the schema
+# validator's messages start with their path, a pattern holds brackets, and one entry's
+# type is gone from the ref.
+INVALID_ENTRIES = [
+    {
+        "id": "66666666-6666-4666-8666-000000000001",
+        "slug": "about-us",
+        "type": "page",
+        "errors": [{"path": "$", "message": "$: required property 'layout' not found"}],
+    },
+    {
+        "id": "66666666-6666-4666-8666-000000000002",
+        "slug": "pricing",
+        "type": "page",
+        "errors": [
+            {"path": "$", "message": "$: required property 'layout' not found"},
+            {"path": "$.code", "message": "$.code: does not match the regex pattern ^[a-z0-9-]+$"},
+        ],
+    },
+    {
+        "id": "66666666-6666-4666-8666-000000000003",
+        "slug": "spring-banner",
+        "errors": [{"path": "/", "message": "its content type is not on this ref"}],
+    },
+]
+
+
+def test_tag_create_sends_validate_only_with_the_flag(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT)
+    run("tag", "create", "v1.1.0", "--branch", "v0.0.x")
+    assert bff.last().get_json() == {"name": "v1.1.0", "ref": "v0.0.x"}
+    out, _ = run("tag", "create", "v1.1.0", "--branch", "v0.0.x", "--validate")
+    assert bff.last().get_json() == {"name": "v1.1.0", "ref": "v0.0.x", "validate": True}
+    assert "v1.1.0" in out  # valid content is tagged as usual
+
+
+def test_tag_create_validate_lists_each_invalid_entry_and_exits_1(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT)
+    bff.invalid_entries = INVALID_ENTRIES
+    out, err = run("tag", "create", "v1.1.0", "--branch", "v0.0.x", "--validate", expect=1)
+    assert out == ""
+    lines = err.splitlines()
+    assert lines[0].startswith("error TAG_CONTENT_INVALID:")
+    summary = lines[lines.index("3 invalid entries:") + 1 :]
+    assert summary == [
+        "  about-us (page) 66666666-6666-4666-8666-000000000001",
+        "    $: required property 'layout' not found",
+        "  pricing (page) 66666666-6666-4666-8666-000000000002",
+        "    $: required property 'layout' not found",
+        "    $.code: does not match the regex pattern ^[a-z0-9-]+$",
+        "  spring-banner (no type) 66666666-6666-4666-8666-000000000003",
+        "    /: its content type is not on this ref",
+    ]
+
+
+def test_tag_create_validate_says_how_many_entries_are_not_listed(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT)
+    bff.invalid_entries = [
+        {"id": f"id-{i}", "slug": f"post-{i:03}", "type": "blogPost", "errors": []}
+        for i in range(INVALID_ENTRIES_SHOWN + 3)
+    ]
+    _, err = run("tag", "create", "v1.1.0", "--branch", "v0.0.x", "--validate", expect=1)
+    text = " ".join(err.split())  # the terminal wraps long lines; compare the words
+    assert "103 invalid entries:" in text and "post-099" in text and "post-100" not in text
+    assert "Listed the first 100 of 103, by slug." in text
+
+
+def test_tag_create_validate_prints_the_problem_with_output_json(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT)
+    bff.invalid_entries = INVALID_ENTRIES
+    out, err = run(
+        "-o", "json", "tag", "create", "v1.1.0", "--branch", "v0.0.x", "--validate", expect=1
+    )
+    problem = json.loads(out)
+    assert problem["code"] == "TAG_CONTENT_INVALID" and problem["entryCount"] == 3
+    assert [e["slug"] for e in problem["invalidEntries"]] == [
+        "about-us",
+        "pricing",
+        "spring-banner",
+    ]
+    assert err == ""
 
 
 def test_promote_and_rollback(run: Run, bff: FakeBff) -> None:

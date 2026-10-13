@@ -20,6 +20,7 @@ from coho_management_sdk.errors import (
     NotFound,
     NotLoggedIn,
     PreconditionRequired,
+    TagContentInvalid,
     Unauthenticated,
     VersionConflict,
 )
@@ -203,6 +204,8 @@ def _print_error(exc: CohoError) -> None:
             "Resolve them with `coho merge … --resolve resolutions.json` "
             "(see docs/commands/merge.md)."
         )
+    elif isinstance(exc, TagContentInvalid):
+        _print_invalid_entries(exc)
     elif isinstance(exc, VersionConflict):
         err.print("Re-read the entry and retry, or pass --force to overwrite the current version.")
     elif isinstance(exc, PreconditionRequired):
@@ -224,6 +227,37 @@ def _print_error(exc: CohoError) -> None:
     ):
         if key_ in exc.context:
             err.print(f"  {key_}: {exc.context[key_]}", highlight=False)
+
+
+def _print_invalid_entries(exc: TagContentInvalid) -> None:
+    """Each entry a validated tag refused, with its type and errors, then how many are unlisted.
+
+    Lines from the content are printed without markup, which would swallow the bracketed
+    part of "does not match the regex pattern ^[a-z0-9-]+$", and unwrapped, so an id or a
+    message stays whole in a log.
+    """
+    listed = exc.invalid_entries
+    total = exc.entry_count
+    err.print(f"{total} invalid {'entry' if total == 1 else 'entries'}:", highlight=False)
+    for item in listed:
+        type_ = item.get("type") or "no type"
+        err.print(
+            f"  {item.get('slug') or '-'} ({type_}) {item.get('id', '')}",
+            highlight=False,
+            markup=False,
+            soft_wrap=True,
+        )
+        for e in item.get("errors") or []:
+            path, message = e.get("path", ""), e.get("message", "")
+            # The schema validator's messages already start with the path.
+            line = message if message.startswith(f"{path}: ") else f"{path}: {message}"
+            err.print(f"    {line}", highlight=False, markup=False, soft_wrap=True)
+    if total > len(listed):
+        err.print(
+            f"Listed the first {len(listed)} of {total}, by slug. "
+            "Correct them and run this again to see the rest.",
+            highlight=False,
+        )
 
 
 def main() -> None:
