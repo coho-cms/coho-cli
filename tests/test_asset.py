@@ -32,6 +32,15 @@ def file(tmp_path: Path, name: str, data: bytes) -> Path:
     return path
 
 
+def words(text: str) -> str:
+    """The text with every run of whitespace as one space.
+
+    Rich wraps at the terminal's width, 80 when it is not a terminal, so where a line
+    breaks depends on how long a temporary path is on the machine running the tests.
+    """
+    return " ".join(text.split())
+
+
 def upload(run: Run, tmp_path: Path, name: str, data: bytes, *args: str) -> dict:  # type: ignore[type-arg]
     out, _ = run("-o", "json", "asset", "upload", str(file(tmp_path, name, data)), *args)
     return json.loads(out)  # type: ignore[no-any-return]
@@ -44,10 +53,10 @@ def test_upload_builds_the_slug_from_the_filename_and_warns_that_urls_are_public
     data = png(40, 30)
     out, err = run("asset", "upload", str(file(tmp_path, "Hero Shot.png", data)), "--title", "Hero")
 
-    assert "Uploaded Hero Shot.png as hero-shot: image/png" in out
-    assert "40×30" in out
-    assert "https://assets.example.test/" in out
-    assert "public" in err
+    assert "Uploaded Hero Shot.png as hero-shot: image/png" in words(out)
+    assert "40×30" in words(out)
+    assert "https://assets.example.test/" in words(out)
+    assert "public" in words(err)
     put = next(r for r in bff.requests if r.path.startswith("/fake-s3/"))
     assert put.get_data() == data
     complete = bff.requests[-1]
@@ -74,17 +83,17 @@ def test_upload_refuses_one_slug_for_several_files_and_a_bad_focal_point(
     run("use", "acme", PROJECT, "dev")
     a = file(tmp_path, "a.png", png(2, 2))
     _, err = run("asset", "upload", str(a), str(a), "--slug", "one", expect=2)
-    assert "--slug names one asset" in err
+    assert "--slug names one asset" in words(err)
     _, err = run("asset", "upload", str(a), "--focal", "middle", expect=2)
-    assert "--focal takes x,y" in err
+    assert "--focal takes x,y" in words(err)
     _, err = run("asset", "upload", str(tmp_path / "missing.png"), expect=2)
-    assert "no such file" in err
+    assert "no such file" in words(err)
 
 
 def test_a_file_that_is_not_an_allowed_type_fails_with_its_code(run: Run, tmp_path: Path) -> None:
     run("use", "acme", PROJECT, "dev")
     _, err = run("asset", "upload", str(file(tmp_path, "page.png", b"<!doctype html>")), expect=1)
-    assert "ASSET_TYPE_NOT_ALLOWED" in err
+    assert "ASSET_TYPE_NOT_ALLOWED" in words(err)
 
 
 def test_list_and_get_by_slug(run: Run, tmp_path: Path) -> None:
@@ -93,15 +102,18 @@ def test_list_and_get_by_slug(run: Run, tmp_path: Path) -> None:
     asset = upload(run, tmp_path, "logo.png", data, "--alt", "The logo")
 
     out, _ = run("asset", "list")
-    assert "logo" in out and "image/png" in out and "8×6" in out
+    assert "logo" in words(out) and "image/png" in words(out) and "8×6" in words(out)
 
     out, _ = run("asset", "get", "logo")
-    assert asset["id"] in out
-    assert "The logo" in out
-    assert hashlib.sha256(data).hexdigest() in out
+    assert asset["id"] in words(out)
+    assert "The logo" in words(out)
+    # From JSON: a table cell longer than the terminal is split mid-hash, and no
+    # whitespace rule can join it back.
+    out, _ = run("-o", "json", "asset", "get", "logo")
+    assert json.loads(out)["file"]["sha256"] == hashlib.sha256(data).hexdigest()
 
     _, err = run("asset", "get", "nothing-here", expect=2)
-    assert "no asset with slug" in err
+    assert "no asset with slug" in words(err)
 
 
 def test_url_resizes_only_raster_images_and_centres_fills_on_the_focal_point(
@@ -111,14 +123,19 @@ def test_url_resizes_only_raster_images_and_centres_fills_on_the_focal_point(
     upload(run, tmp_path, "hero.png", png(10, 10), "--focal", "0.2,0.8")
 
     out, _ = run("asset", "url", "hero")
-    assert "/a/" in out
+    assert "/a/" in words(out)
     out, _ = run("asset", "url", "hero", "--width", "800", "--fit", "fill", "--format", "webp")
-    assert "/i/" in out and "w=800" in out and "fit=fill" in out and "fm=webp" in out
-    assert "fx=0.2" in out and "fy=0.8" in out
+    assert (
+        "/i/" in words(out)
+        and "w=800" in words(out)
+        and "fit=fill" in words(out)
+        and "fm=webp" in words(out)
+    )
+    assert "fx=0.2" in words(out) and "fy=0.8" in words(out)
 
     upload(run, tmp_path, "doc.pdf", b"%PDF-1.7\n")
     _, err = run("asset", "url", "doc", "--width", "100", expect=2)
-    assert "application/pdf" in err
+    assert "application/pdf" in words(err)
 
 
 def test_put_changes_metadata_and_keeps_the_rest(run: Run, bff: FakeBff, tmp_path: Path) -> None:
@@ -126,7 +143,7 @@ def test_put_changes_metadata_and_keeps_the_rest(run: Run, bff: FakeBff, tmp_pat
     asset = upload(run, tmp_path, "edit.png", png(4, 4), "--title", "Old", "--tag", "a")
 
     out, _ = run("asset", "put", "edit", "--alt", "New alt")
-    assert "Updated edit" in out
+    assert "Updated edit" in words(out)
     sent = bff.requests[-1]
     assert sent.headers["If-Match"] == '"a1"'
     assert sent.get_json() == {"title": "Old", "alt": "New alt", "tags": ["a"]}
@@ -135,15 +152,15 @@ def test_put_changes_metadata_and_keeps_the_rest(run: Run, bff: FakeBff, tmp_pat
     assert bff.requests[-1].get_json() == {"alt": "New alt"}
 
     _, err = run("asset", "put", "edit", expect=2)
-    assert "nothing to change" in err
+    assert "nothing to change" in words(err)
     _, err = run("asset", "put", "edit", "--clear", "file", expect=2)
-    assert "--clear takes" in err
+    assert "--clear takes" in words(err)
 
 
 def test_delete_asks_and_says_the_url_keeps_working(run: Run, tmp_path: Path) -> None:
     run("use", "acme", PROJECT, "dev")
     upload(run, tmp_path, "gone.png", png(2, 3))
     out, _ = run("--yes", "asset", "delete", "gone")
-    assert "Deleted gone" in out
+    assert "Deleted gone" in words(out)
     out, _ = run("asset", "list")
-    assert "gone" not in out
+    assert "gone" not in words(out)
