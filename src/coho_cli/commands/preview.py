@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from .._entry_ids import entry_id as resolve_entry_id
 from .._output import emit_json, table
 from .._state import get_state
 
@@ -50,9 +51,13 @@ def entries(
 @app.command("entry")
 def entry(
     ctx: typer.Context,
-    entry_id: Annotated[str, typer.Argument()],
+    entry_id: Annotated[
+        str,
+        typer.Argument(metavar="ID", help="An entry id, or @slug for the entry with that slug."),
+    ],
     locale: Annotated[str | None, typer.Option("--locale")] = None,
 ) -> None:
     """One entry as delivery would serve it."""
     state = get_state(ctx)
-    emit_json(state.ref().preview().entry(entry_id, locale=locale))
+    ref = state.ref()
+    emit_json(ref.preview().entry(resolve_entry_id(ref, entry_id), locale=locale))

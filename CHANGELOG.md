@@ -8,6 +8,14 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `@SLUG` wherever a command takes an entry id: `entry get`, `put`, `delete`, `history`,
+  `references` and `preview entry`. The slug is looked up on the same ref with one
+  request (the BFF's live `preview/{ref}/entries-by-slug/{slug}`), then the command runs
+  as if the id had been typed; a plain id is used as given. A slug nothing has is
+  `ENTRY_NOT_FOUND` (exit 5); one that names a type or an asset, or `@` before something
+  that is not a slug, is a usage error. `entry delete @SLUG` asks about both the slug and
+  the id it found. `entry list` and `entry get` show the slug from `_slug` while the
+  server's entry responses leave out `slug`.
 - `coho ref switch NAME`: makes a branch, tag or environment of the current project the
   current ref, after checking it exists, keeping the account and project. It and
   `coho branch create` warn when `--ref` or `COHO_REF` still overrides the saved ref.

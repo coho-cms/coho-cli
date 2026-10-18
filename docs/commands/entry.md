@@ -3,6 +3,14 @@
 Entries on the current ref. See [content model](../content-model.md) for fields,
 locales and ETags.
 
+Wherever a command takes an entry `ID`, `@SLUG` names the entry with that slug on the
+same ref: `coho entry put @hello-world --set rank=3`. The CLI looks the slug up (one
+request, the delivery contract's `entries-by-slug` read through the BFF) and carries on
+with the id. Slugs are unique per ref across entries, types and assets, so a slug names
+one thing at most; one that names a type or an asset is refused. Lookups work on a
+branch, or an environment on one; on a tag, and for a deleted entry, use the id. Ids
+are UUIDs, so none starts with `@`.
+
 ## `coho entry list [-t TYPE] [--limit N] [--offset N] [--all]`
 
 One page (default 100, max 1000 — out of range is refused, not clamped), or every

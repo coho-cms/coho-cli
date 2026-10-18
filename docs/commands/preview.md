@@ -16,6 +16,7 @@ the same query parameters — without publishing it.
 
 ## `coho preview entry ID [--locale L]`
 
-One entry as delivery would serve it. Printed as JSON.
+One entry as delivery would serve it. Printed as JSON. `@SLUG` in place of the id
+names the entry with that slug, as in [`entry`](entry.md).
 
 Responses carry `Cache-Control: no-cache` because a live ref moves with every write.

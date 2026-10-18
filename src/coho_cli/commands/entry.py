@@ -8,12 +8,18 @@ from typing import Annotated, Any
 import typer
 from coho_management_sdk.models import Entry
 
+from .._entry_ids import entry_id as resolve_entry_id
 from .._io import parse_set, read_json, set_path
 from .._output import console, emit_json, record, say, table
 from .._slugs import content_slug
 from .._state import State, Usage, get_state
 
 app = typer.Typer(help="Entries on the current ref.", no_args_is_help=True)
+
+# Every command that takes an entry id takes `@<slug>` too (see `_entry_ids`).
+EntryId = Annotated[
+    str, typer.Argument(metavar="ID", help="An entry id, or @slug for the entry with that slug.")
+]
 
 
 @app.command("list")
@@ -40,7 +46,7 @@ def list_(
         state,
         raw,
         ["ID", "TYPE", "SLUG", "TITLE"],
-        [(e.id, e.type, e.slug, _title(e.fields)) for e in entries],
+        [(e.id, e.type, _slug(e), _title(e.fields)) for e in entries],
     )
     if state.output != "json" and not all_ and page.page.has_more:
         console.print(f"[dim]more: --offset {offset + len(entries)}, or --all[/dim]")
@@ -49,7 +55,7 @@ def list_(
 @app.command("get")
 def get(
     ctx: typer.Context,
-    entry_id: Annotated[str, typer.Argument()],
+    entry_id: EntryId,
     fields_only: Annotated[
         bool,
         typer.Option(
@@ -59,7 +65,8 @@ def get(
 ) -> None:
     """One entry, with its ETag."""
     state = get_state(ctx)
-    e = state.ref().entries.get(entry_id)
+    ref = state.ref()
+    e = ref.entries.get(resolve_entry_id(ref, entry_id))
     if fields_only:
         emit_json(e.fields)
         return
@@ -72,7 +79,7 @@ def get(
         [
             ("id", e.id),
             ("type", e.type),
-            ("slug", e.slug),
+            ("slug", _slug(e)),
             ("version", e.version),
             ("etag", e.etag),
         ],
@@ -123,7 +130,7 @@ def create(
 @app.command("put")
 def put(
     ctx: typer.Context,
-    entry_id: Annotated[str, typer.Argument()],
+    entry_id: EntryId,
     file: Annotated[
         str | None, typer.Option("--file", "-f", help="Fields JSON (replaces all fields).")
     ] = None,
@@ -146,9 +153,11 @@ def put(
     somebody else wrote in between.
     """
     state = get_state(ctx)
-    api = state.ref().entries
     if file is None and not set_:
         raise Usage("nothing to write: pass --file and/or --set")
+    ref = state.ref()
+    api = ref.entries
+    entry_id = resolve_entry_id(ref, entry_id)
     if file is not None:
         fields = _fields(file, set_)
         e = api.put(entry_id, fields, if_match=if_match, force=force)
@@ -164,7 +173,7 @@ def put(
 @app.command("delete")
 def delete(
     ctx: typer.Context,
-    entry_id: Annotated[str, typer.Argument()],
+    entry_id: EntryId,
     if_match: Annotated[str | None, typer.Option("--if-match")] = None,
     force: Annotated[
         bool, typer.Option("--force", help="Delete whatever version is current.")
@@ -172,8 +181,12 @@ def delete(
 ) -> None:
     """Tombstone an entry. Never a physical delete; the tombstone has its own ETag."""
     state = get_state(ctx)
-    api = state.ref().entries
-    if not state.yes and not typer.confirm(f"Delete entry {entry_id} on {state.context.ref}?"):
+    ref = state.ref()
+    api = ref.entries
+    named = entry_id
+    entry_id = resolve_entry_id(ref, entry_id)
+    what = entry_id if named == entry_id else f"{named} ({entry_id})"
+    if not state.yes and not typer.confirm(f"Delete entry {what} on {state.context.ref}?"):
         raise typer.Abort()
     refs = api.references(entry_id)
     if (
@@ -192,13 +205,14 @@ def delete(
 @app.command("history")
 def history(
     ctx: typer.Context,
-    entry_id: Annotated[str, typer.Argument()],
+    entry_id: EntryId,
     limit: Annotated[int, typer.Option("--limit")] = 50,
     offset: Annotated[int, typer.Option("--offset")] = 0,
 ) -> None:
     """Version history on this ref, newest first. Tombstones included."""
     state = get_state(ctx)
-    h = state.ref().entries.history(entry_id, limit=limit, offset=offset)
+    ref = state.ref()
+    h = ref.entries.history(resolve_entry_id(ref, entry_id), limit=limit, offset=offset)
     table(
         state,
         h.raw,
@@ -208,10 +222,11 @@ def history(
 
 
 @app.command("references")
-def references(ctx: typer.Context, entry_id: Annotated[str, typer.Argument()]) -> None:
+def references(ctx: typer.Context, entry_id: EntryId) -> None:
     """What links to this entry on this ref. Complete, never paginated."""
     state = get_state(ctx)
-    r = state.ref().entries.references(entry_id)
+    ref = state.ref()
+    r = ref.entries.references(resolve_entry_id(ref, entry_id))
     table(
         state,
         r.raw,
@@ -253,11 +268,18 @@ def _created_or_updated(state: State, e: Entry) -> None:
             [
                 ("id", e.id),
                 ("type", e.type),
-                ("slug", e.slug),
+                ("slug", _slug(e)),
                 ("version", e.version),
                 ("etag", e.etag),
             ],
         )
+
+
+def _slug(e: Entry) -> str | None:
+    # ⚠️ authoring.yaml says an entry carries `slug`, but authoring's EntryResponse does not
+    # send it yet. `_slug` in the fields is the same value, stamped by the writer.
+    slug = e.slug or e.fields.get("_slug")
+    return slug if isinstance(slug, str) else None
 
 
 def _title(fields: dict[str, Any]) -> str | None:
