@@ -33,6 +33,9 @@ All notable changes to `coho-cli`. The format follows
   `--set author=@priya-shah --set 'tags=["@traffic"]'` writes the ids those slugs name
   on the same ref. Only fields the content type declares as references are looked up, so
   text keeps a leading `@`; the type is read only when a value starts with `@`.
+- `@SLUG` in an asset field's `--set` value too: `--set image=@culvert` writes the id of
+  the asset with that slug, from one listing of the ref's assets. A slug no asset has
+  is `ASSET_NOT_FOUND` (exit 5).
 - `coho ref switch NAME`: makes a branch, tag or environment of the current project the
   current ref, after checking it exists, keeping the account and project. It and
   `coho branch create` warn when `--ref` or `COHO_REF` still overrides the saved ref.

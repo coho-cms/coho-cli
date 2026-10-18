@@ -258,3 +258,71 @@ def test_put_with_a_file_reads_the_entry_type_to_find_its_references(
     run("use", "acme", PROJECT, "dev")
     run("entry", "put", ENTRY, "--file", str(doc), "--set", "author=@priya-shah", "--force")
     assert bff.last().method == "PUT" and bff.last().get_json()["fields"]["author"] == PRIYA
+
+
+# --- @<slug> in an asset field's --set value ------------------------------------------
+
+CULVERT = "01920000-0000-7000-8000-0000000000c1"
+GUIDE = "01920000-0000-7000-8000-0000000000c2"
+
+
+def post_with_assets_type(bff: FakeBff) -> None:
+    """A blogPost with an image, downloads, an author reference and a text bio."""
+    bff.server.expect_oneshot_request(f"{REFS}/types/blogPost", method="GET").respond_with_json(
+        {
+            "slug": "blogPost",
+            "version": "t1",
+            "definition": {
+                "_name": "Blog post",
+                "fields": [
+                    {"id": "bio", "type": "text"},
+                    {"id": "author", "type": "reference", "of": ["teamMember"]},
+                    {"id": "image", "type": "asset", "accept": ["image/*"]},
+                    {
+                        "id": "downloads",
+                        "type": "asset",
+                        "many": True,
+                        "accept": ["application/pdf"],
+                    },
+                ],
+            },
+        }
+    )
+
+
+def stored_asset(bff: FakeBff, id_: str, slug: str) -> None:
+    bff.assets[id_] = {"id": id_, "slug": slug, "version": "a1", "file": {}}
+
+
+def test_an_asset_field_set_to_a_slug_is_written_as_the_asset_id(run: Run, bff: FakeBff) -> None:
+    post_with_assets_type(bff)
+    stored_asset(bff, CULVERT, "culvert")
+    stored_asset(bff, GUIDE, "roundabout-guide")
+    by_slug(bff, "dev", "priya-shah", graph(node(PRIYA, "priya-shah", "teamMember")))
+    run("use", "acme", PROJECT, "dev")
+    run(
+        "-o", "json", "entry", "put", ENTRY,
+        "--set", "image=@culvert",
+        "--set", 'downloads=["@roundabout-guide"]',
+        "--set", "author=@priya-shah",
+        "--set", "bio=@culvert",
+    )  # fmt: skip
+    written = bff.last().get_json()["fields"]
+    assert written["image"] == CULVERT
+    assert written["downloads"] == [GUIDE]
+    assert written["author"] == PRIYA
+    assert written["bio"] == "@culvert"
+    # Assets are listed once for every asset slug, and never looked up as entries.
+    assert [r.path for r, _ in bff.server.log if r.path.endswith("/assets")] == [f"{REFS}/assets"]
+    assert slug_reads(bff) == [f"{PREVIEW}/dev/entries-by-slug/priya-shah"]
+
+
+def test_an_asset_slug_nothing_has_is_not_found_and_nothing_is_written(
+    run: Run, bff: FakeBff
+) -> None:
+    post_with_assets_type(bff)
+    stored_asset(bff, CULVERT, "culvert")
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("entry", "put", ENTRY, "--set", "image=@bridge", expect=5)
+    assert "no asset with slug 'bridge' on dev" in words(err)
+    assert not any(r.method == "PUT" for r, _ in bff.server.log)

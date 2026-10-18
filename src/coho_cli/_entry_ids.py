@@ -19,9 +19,11 @@ Entry ids are UUIDs, so no id starts with ``@`` and the prefix cannot shadow one
 is a well-formed slug too, so ``@<uuid>`` is looked up as a slug like any other.
 
 The same goes for the value of a reference field in ``--set``: ``author=@priya-shah``,
-``tags=["@traffic","@drainage"]``. Only reference fields, as the entry's content type
-declares them, are looked up, so a text field may still hold ``@handle``. The server
-then checks the ids as it checks any: that each exists and is of a type the field allows.
+``tags=["@traffic","@drainage"]``, and of an asset field, where the slug is an asset's:
+``image=@culvert``, ``downloads=["@guide"]``. Only reference and asset fields, as the
+entry's content type declares them, are looked up, so a text field may still hold
+``@handle``. The server then checks the ids as it checks any: that each exists and is of
+a type, or a media type, the field allows.
 """
 
 from __future__ import annotations
@@ -98,29 +100,51 @@ def entry_id(ref: Ref, raw: str) -> str:
 def reference_ids(
     ref: Ref, type_of: Callable[[], str], sets: list[tuple[str, Any]]
 ) -> list[tuple[str, Any]]:
-    """``--set`` values, each ``@<slug>`` in a reference field replaced by the entry id it
-    names on ``ref``. ``type_of`` gives the entry's content type, and is only called, and
-    the type only read, when some value names a slug: otherwise nothing is requested."""
+    """``--set`` values, each ``@<slug>`` in a reference or asset field replaced by the id
+    of the entry, or the asset, with that slug on ``ref``. ``type_of`` gives the entry's
+    content type, and is only called, and the type only read, when some value names a
+    slug: otherwise nothing is requested."""
     if not any(_names_slug(value) for _, value in sets):
         return sets
-    links = {
-        f.get("id")
+    kinds = {
+        f.get("id"): f.get("type")
         for f in ref.types.get(type_of()).fields
-        if isinstance(f, dict) and f.get("type") == "reference"
+        if isinstance(f, dict) and f.get("type") in ("reference", "asset")
     }
     found: dict[str, str] = {}
+    assets: dict[str, str] | None = None
 
-    def resolve(value: Any) -> Any:
+    def asset_id(raw: str) -> str:
+        # Assets are listed once, by the first asset slug named: the management API has
+        # no by-slug read for them, and a page of 1000 covers most projects in one request.
+        nonlocal assets
+        if assets is None:
+            assets = {a.slug: a.id for a in ref.assets.iterate(page_size=1000)}
+        slug = raw[1:]
+        if slug not in assets:
+            raise NotFound(
+                f"no asset with slug '{slug}' on {ref.name}. `coho asset list` shows the slugs.",
+                code="ASSET_NOT_FOUND",
+                status=404,
+            )
+        return assets[slug]
+
+    def resolve(kind: Any, value: Any) -> Any:
         if not (isinstance(value, str) and value.startswith("@")):
             return value
-        if value not in found:
-            found[value] = entry_id(ref, value)
-        return found[value]
+        key = f"{kind}:{value}"
+        if key not in found:
+            found[key] = asset_id(value) if kind == "asset" else entry_id(ref, value)
+        return found[key]
 
     out: list[tuple[str, Any]] = []
     for path, value in sets:
-        if path.split(".")[0] in links:
-            value = [resolve(v) for v in value] if isinstance(value, list) else resolve(value)
+        kind = kinds.get(path.split(".")[0])
+        if kind is not None:
+            if isinstance(value, list):
+                value = [resolve(kind, v) for v in value]
+            else:
+                value = resolve(kind, value)
         out.append((path, value))
     return out
 

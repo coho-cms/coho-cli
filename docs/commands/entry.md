@@ -15,7 +15,9 @@ A reference field's `--set` value takes `@SLUG` too, on `entry create` and `entr
 `--set author=@priya-shah --set 'tags=["@traffic","@drainage"]'`. Each is looked up on
 the same ref and written as the id it names; the server then checks the ids as it checks
 any. Only fields the entry's content type declares as references are looked up, so a
-text field set to `@something` keeps it as typed. The type is read, and slugs looked up,
+text field set to `@something` keeps it as typed.
+An asset field takes an asset's slug the same way: `--set image=@culvert --set
+'downloads=["@roundabout-functionality"]'`, looked up among the ref's assets. The type is read, and slugs looked up,
 only when some `--set` value starts with `@`. Values in `--file` are written as given.
 
 ## `coho entry list [-t TYPE] [--limit N] [--offset N] [--all]`
