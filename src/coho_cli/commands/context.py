@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from typing import Annotated
 
 import typer
 from coho_management_sdk.errors import CohoError
 
-from .._output import console, record, say
+from .._output import console, record, say, warn
 from .._state import State, Usage, get_state
 
 
@@ -20,6 +21,25 @@ def _account_name(state: State, account_id: str) -> str | None:
         )
     except (CohoError, Usage):
         return None
+
+
+def save_ref(state: State, name: str) -> None:
+    """Make ``name`` the saved ref, as `ref switch` and `branch create` do.
+
+    The saved ref comes last: a --ref or COHO_REF still wins, so `coho status` would not
+    show the switch. Say so, rather than look as if the switch did nothing.
+    """
+    state.profile.context.ref = name
+    state.save()
+    say(state, f"Context ref is now [bold]{name}[/bold].")
+    override = state.overrides.ref
+    if override and override != name:
+        given = (
+            f"COHO_REF={override}"
+            if os.environ.get("COHO_REF") == override
+            else f"--ref {override}"
+        )
+        warn(f"{given} overrides the saved ref, so commands still use {override}")
 
 
 def use(

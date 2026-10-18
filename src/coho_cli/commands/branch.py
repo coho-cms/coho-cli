@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
 from typing import Annotated
 
 import typer
 
-from .._output import record, say, table, warn
+from .._output import record, table, warn
 from .._state import get_state
+from .context import save_ref
 
 app = typer.Typer(help="Branches. Creating one is O(1) and copies nothing.", no_args_is_help=True)
 
@@ -71,16 +71,4 @@ def create(
     if b.depth_warning:
         warn("this branch is deep; resolution gets slower with depth")
     if use:
-        state.profile.context.ref = b.name
-        state.save()
-        say(state, f"Context ref is now [bold]{b.name}[/bold].")
-        # The saved ref comes last: a --ref or COHO_REF still wins, so `coho status` would
-        # not show the new branch. Say so, rather than look as if the switch did nothing.
-        override = state.overrides.ref
-        if override and override != b.name:
-            given = (
-                f"COHO_REF={override}"
-                if os.environ.get("COHO_REF") == override
-                else f"--ref {override}"
-            )
-            warn(f"{given} overrides the saved ref, so commands still use {override}")
+        save_ref(state, b.name)

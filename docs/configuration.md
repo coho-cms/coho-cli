@@ -75,7 +75,7 @@ A command that needs a value none of these provide is a usage error (exit 2) nam
 the flag and the `use` command.
 
 `coho project create` and `coho branch create` update the context for you, unless given
-`--no-use`.
+`--no-use`. `coho ref switch NAME` changes only the ref.
 
 ## The local project registry
 

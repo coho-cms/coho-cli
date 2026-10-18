@@ -19,7 +19,7 @@ Global options: `-p/--profile`, `-o/--output table|json`, `--url`, `--account`,
 | [user](user.md) | `user rename/logins/detach-login` |
 | [project](project.md) | `project create/show/list/register/forget` |
 | [role](role.md) | `role list/grant/revoke/ladder` |
-| [ref](ref.md) | `ref list/show/describe` |
+| [ref](ref.md) | `ref list/show/switch/describe` |
 | [branch](branch.md) | `branch list/create` |
 | [tag](tag.md) | `tag list/create` |
 | [type](type.md) | `type list/get/put/delete` |

@@ -130,7 +130,7 @@ there are conflicts, the merge is refused whole and the conflicts are printed; s
 ## 6. Cut a release and promote it
 
 ```bash
-coho use acme "Marketing site" v0.0.x
+coho ref switch v0.0.x                        # back to the trunk
 coho tag create v1.0.0 -m "First release"     # immutable (branch, seq) coordinate
 coho promote qa v1.0.0                        # waits while the snapshot builds
 coho promote stage v1.0.0

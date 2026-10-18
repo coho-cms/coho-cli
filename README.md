@@ -12,6 +12,7 @@ coho entry create -t blogPost -s hello --set title.en-US=Hello
 coho branch create feature/pricing          # and switches to it
 coho diff v0.0.x                            # three-dot, conflicts included
 coho merge --into v0.0.x -m "New pricing"
+coho ref switch v0.0.x                      # back to the trunk
 coho tag create v1.4.0 --branch v0.0.x -m "Q3 catalogue"
 coho promote qa v1.4.0                      # waits for the snapshot unless --no-wait
 coho rollback prod                          # the previous target, conditionally

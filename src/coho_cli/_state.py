@@ -175,9 +175,7 @@ class State:
         project = self.project()
         name = self.context.ref
         if not name:
-            raise Usage(
-                "no ref in context. Run `coho use <account> <project> <ref>` or pass --ref."
-            )
+            raise Usage("no ref in context. Run `coho ref switch <ref>` or pass --ref.")
         return project.ref(name)
 
     def save(self) -> None:

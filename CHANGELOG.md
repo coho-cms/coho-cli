@@ -8,6 +8,9 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho ref switch NAME`: makes a branch, tag or environment of the current project the
+  current ref, after checking it exists, keeping the account and project. It and
+  `coho branch create` warn when `--ref` or `COHO_REF` still overrides the saved ref.
 - `coho asset`: files on the current ref (coho-data doc 40). `asset upload FILE…` hashes
   each file, sends it straight to object storage on a presigned URL and writes it as an
   asset, building the slug from the filename (`Hero Shot.jpg` → `hero-shot`) unless

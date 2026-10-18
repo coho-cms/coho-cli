@@ -84,6 +84,45 @@ def test_branch_create_warns_when_ref_flag_hides_the_switch(run: Run) -> None:
     assert "--ref dev overrides the saved ref" in err
 
 
+def test_ref_switch_makes_the_ref_current(run: Run, home: Path) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, err = run("ref", "switch", "feature/pricing")
+    assert "Context ref is now feature/pricing" in out and "warning" not in err
+    cfg = Config.load(home / "config.toml").profile("test")
+    assert (cfg.context.account, cfg.context.project) == (ACCOUNT, PROJECT)
+    assert cfg.context.ref == "feature/pricing"
+    out, _ = run("status")
+    assert "feature/pricing" in out
+
+
+def test_ref_switch_to_an_unknown_ref_is_not_found_and_keeps_the_ref(run: Run, home: Path) -> None:
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("ref", "switch", "nope", expect=5)
+    assert "REF_NOT_FOUND" in err
+    assert Config.load(home / "config.toml").profile("test").context.ref == "dev"
+
+
+def test_ref_switch_needs_a_project(run: Run) -> None:
+    _, err = run("ref", "switch", "dev", expect=2)
+    assert "coho use" in err
+
+
+def test_ref_switch_warns_when_coho_ref_hides_the_switch(
+    run: Run, home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run("use", "acme", PROJECT, "dev")
+    monkeypatch.setenv("COHO_REF", "dev")
+    _, err = run("ref", "switch", "feature/pricing")
+    assert "COHO_REF=dev overrides the saved ref, so commands still use dev" in err
+    assert Config.load(home / "config.toml").profile("test").context.ref == "feature/pricing"
+
+
+def test_ref_switch_json_is_the_ref(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("-o", "json", "ref", "switch", "feature/pricing")
+    assert json.loads(out)["name"] == "feature/pricing"
+
+
 def test_missing_context_is_usage_error(run: Run) -> None:
     _, err = run("entry", "list", expect=2)
     assert "coho use" in err

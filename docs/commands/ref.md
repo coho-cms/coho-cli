@@ -24,6 +24,21 @@ yet. The same ref is a `404` on content endpoints, because there is nothing to r
 
 One ref. Default: the current ref.
 
+## `coho ref switch NAME`
+
+Makes `NAME` the current ref: a branch, a tag or an environment of the current project.
+It is checked against the server first, so a typo is `REF_NOT_FOUND` (exit 5) and the
+saved ref stays as it was. The account and project are kept. Prints the ref, its kind
+and target, then `Context ref is now NAME.`
+
+```bash
+coho merge feature/pricing --into v0.0.x -m "New pricing copy" --reviewed
+coho ref switch v0.0.x        # back to the trunk
+```
+
+The saved ref comes after `--ref` and `COHO_REF`, so while either is set to another
+ref, commands keep using it, and `ref switch` warns on stderr that it does.
+
 ## `coho ref describe NAME [DESCRIPTION] [--clear]`
 
 Sets the standing description: what a branch is for, or release notes on a tag. The
