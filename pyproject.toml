@@ -39,8 +39,8 @@ coho = "coho_cli.main:main"
 [project.urls]
 Homepage = "https://github.com/coho-cms/coho-cli"
 Source = "https://github.com/coho-cms/coho-cli"
-Documentation = "https://github.com/coho-cms/coho-cli/tree/main/docs"
-Changelog = "https://github.com/coho-cms/coho-cli/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/coho-cms/coho-cli/tree/HEAD/docs"
+Changelog = "https://github.com/coho-cms/coho-cli/blob/HEAD/CHANGELOG.md"
 Issues = "https://github.com/coho-cms/coho-cli/issues"
 
 [build-system]

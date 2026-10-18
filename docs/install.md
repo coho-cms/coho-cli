@@ -1,8 +1,8 @@
 # Install
 
-Python 3.11 or newer.
+Python 3.11 or newer. `uv` downloads one if you have none.
 
-## As a tool (recommended once published)
+## As a tool (recommended)
 
 ```bash
 uv tool install coho-cli
@@ -11,7 +11,9 @@ pipx install coho-cli
 ```
 
 This gives you the `coho` command in an isolated environment. `coho-management-sdk` is pulled in
-as a dependency.
+as a dependency. The package is `coho-cli`: `coho` on PyPI is an unrelated project.
+
+`uv tool upgrade coho-cli` (or `pipx upgrade coho-cli`) moves to the newest release.
 
 ## The library only
 

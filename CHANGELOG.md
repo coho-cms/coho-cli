@@ -8,6 +8,7 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- On PyPI: `uv tool install coho-cli` or `pipx install coho-cli`.
 - `coho login` finishes setting up an identity that has no organization yet: it opens the
   BFF's sign-in in the browser, which asks for the organization's name, and waits until the
   account exists. That sign-in asks for the password once more, because the CLI's own sign-in

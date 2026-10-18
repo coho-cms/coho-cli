@@ -35,5 +35,5 @@ Global options: `-p/--profile`, `-o/--output table|json`, `--url`, `--account`,
 
 Every command accepts `-h`. In `--output json` mode each command prints the server's
 response as the contract describes it (the contracts are vendored in the
-[library repository](https://github.com/coho-cms/coho-management-sdk-python/tree/main/contracts));
+[library repository](https://github.com/coho-cms/coho-management-sdk-python/tree/HEAD/contracts));
 the tables below describe the human output.

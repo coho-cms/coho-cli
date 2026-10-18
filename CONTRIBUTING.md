@@ -46,7 +46,7 @@ tests/             the whole command tree against the SDK's FakeBff
 docs/              guides and the command reference
 ```
 
-⚠️ **Push the SDK first.** CI builds the CLI against the SDK's `main` on GitHub,
+⚠️ **Push the SDK first.** CI builds the CLI against the SDK's `v2026.1.0` branch on GitHub,
 not your local copy. A CLI change that uses new SDK code fails CI with
 `"Coho" has no attribute …` until that SDK code is pushed; then re-run the CLI's
 workflow.
@@ -80,10 +80,16 @@ version: CI refuses it, and every later build would fail.
    a `CHANGELOG.md` entry.
 2. Commit and push, then tag: `git tag v2026.1.0a4 && git push origin v2026.1.0a4`.
 3. CI tests, builds a wheel and an sdist, fails if the tag is not a version in its
-   standard form, uploads both as a build artifact, and attaches them to a GitHub
-   Release, marked as a pre-release for an alpha, beta or release candidate.
+   standard form, uploads both as a build artifact, attaches them to a GitHub
+   Release (a pre-release for an alpha, beta or release candidate), and publishes
+   them to [PyPI](https://pypi.org/project/coho-cli/).
 
-Publishing to PyPI is off by default; the `publish-pypi` job runs only when the
-repository variable `PUBLISH_TO_PYPI` is `true`, using a trusted publisher and the
-`pypi` environment. Release `coho-management-sdk` first: a `coho-cli` that depends on a library
-version nobody can install is not installable either.
+⚠️ **Release `coho-management-sdk` first**, and wait until it is on PyPI: a `coho-cli` that
+depends on a library version nobody can install is not installable either. PyPI never
+takes the same version's files twice, even after a delete, so a broken release is fixed
+by the next tag.
+
+The `publish-pypi` job authenticates as a [trusted publisher](https://docs.pypi.org/trusted-publishers/)
+with a short-lived OIDC token, so no API token is stored anywhere, and deploys through
+the `pypi` environment, which only `v*` tags can use. Setting the repository variable
+`PUBLISH_TO_PYPI` to anything but `true` turns it off.

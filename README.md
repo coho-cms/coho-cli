@@ -36,17 +36,21 @@ publish.
 ## Install
 
 ```bash
-uv tool install coho-cli          # once published; see docs/install.md for from-source
+uv tool install coho-cli          # or: pipx install coho-cli
 ```
+
+Python 3.11 or newer; `uv` downloads one if you have none. The package is `coho-cli`:
+`coho` on PyPI is an unrelated project. [Install](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/install.md)
+covers building from source.
 
 ## Documentation
 
-Start with the [quickstart](docs/quickstart.md). Everything else is in [`docs/`](docs/index.md):
+Start with the [quickstart](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/quickstart.md). Everything else is in [`docs/`](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/index.md):
 
-- **Guides:** [install](docs/install.md) · [authentication](docs/authentication.md) · [configuration and context](docs/configuration.md) · [concepts](docs/concepts.md) · [content model](docs/content-model.md) · [errors and exit codes](docs/errors.md) · [CI usage](docs/ci.md)
-- **Command reference:** [`docs/commands/`](docs/commands/index.md), one page per noun
-- **Library reference:** [coho-management-sdk-python/docs](https://github.com/coho-cms/coho-management-sdk-python/tree/main/docs) — for using `coho_management_sdk` directly
-- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md)
+- **Guides:** [install](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/install.md) · [authentication](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/authentication.md) · [configuration and context](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/configuration.md) · [concepts](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/concepts.md) · [content model](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/content-model.md) · [errors and exit codes](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/errors.md) · [CI usage](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/ci.md)
+- **Command reference:** [`docs/commands/`](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/commands/index.md), one page per noun
+- **Library reference:** [coho-management-sdk-python/docs](https://github.com/coho-cms/coho-management-sdk-python/tree/HEAD/docs) — for using `coho_management_sdk` directly
+- **Contributing:** [CONTRIBUTING.md](https://github.com/coho-cms/coho-cli/blob/HEAD/CONTRIBUTING.md) · [SECURITY.md](https://github.com/coho-cms/coho-cli/blob/HEAD/SECURITY.md) · [CHANGELOG.md](https://github.com/coho-cms/coho-cli/blob/HEAD/CHANGELOG.md)
 
 ## Status
 
@@ -58,4 +62,4 @@ registry).
 
 ## Licence
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/coho-cms/coho-cli/blob/HEAD/LICENSE).
