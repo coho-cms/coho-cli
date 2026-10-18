@@ -33,6 +33,7 @@ from ._output import console
 from ._state import EXIT_AUTH, EXIT_CONFLICT, EXIT_ERROR, EXIT_NOT_FOUND, State, Usage
 from .commands import (
     account,
+    asset,
     auth,
     branch,
     context,
@@ -171,6 +172,7 @@ app.add_typer(branch.app, name="branch")
 app.add_typer(tag.app, name="tag")
 app.add_typer(type_.app, name="type")
 app.add_typer(entry.app, name="entry")
+app.add_typer(asset.app, name="asset")
 app.add_typer(env.app, name="env")
 app.add_typer(tier.app, name="tier")
 app.add_typer(key.app, name="key")

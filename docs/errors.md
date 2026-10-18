@@ -63,6 +63,12 @@ whole problem document on stdout so a script can read the conflicts or the entri
 | `LIVE_ENVIRONMENT_LIMIT` | 400 | | |
 | `SNAPSHOT_NOT_READY` | 400 | `state` | the CLI waits unless `--no-wait` |
 | `PLAN_LIMIT` | 400 / 409 | `limit`, `current` | the account's plan |
+| `ASSET_TOO_LARGE` | 400 | `limit`, `current` | over the per-file limit, 1 GiB; `asset upload` refuses it first |
+| `ASSET_TYPE_NOT_ALLOWED` | 400 | | the bytes are not an image, PDF, audio or video, whatever the name |
+| `ASSET_UPLOAD_INCOMPLETE` | 400 | | completed before the bytes arrived, or other bytes |
+| `ASSET_UPLOAD_EXPIRED` | 400 | | not completed within the hour |
+| `ASSETS_UNAVAILABLE` | 503 | | the deployment has no asset store |
+| `UPLOAD_REJECTED` | — | `storageCode` | object storage refused the bytes on its presigned URL; not from the API |
 | `UPSTREAM_UNAVAILABLE` | 502 | | the BFF could not reach a tier |
 | `INTERNAL` | 500 | | opaque by design |
 

@@ -8,6 +8,16 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho asset`: files on the current ref (coho-data doc 40). `asset upload FILE…` hashes
+  each file, sends it straight to object storage on a presigned URL and writes it as an
+  asset, building the slug from the filename (`Hero Shot.jpg` → `hero-shot`) unless
+  `--slug` is given for a single file; `--title`, `--alt`, `--focal x,y` and `--tag` set
+  its metadata. Bytes the project already holds are not sent again. Also `asset list`,
+  `get`, `url` (prints the original, or a resized image URL with `--width`, `--height`,
+  `--fit`, `--format`, `--quality`, centring fills on the focal point), `put` and
+  `delete`, each taking an id or a slug. Upload warns on stderr that asset URLs are
+  public to anyone holding them. Needs the `coho-management-sdk` that adds `ref.assets`,
+  and a server with the asset routes.
 - On PyPI: `uv tool install coho-cli` or `pipx install coho-cli`.
 - `coho login` finishes setting up an identity that has no organization yet: it opens the
   BFF's sign-in in the browser, which asks for the organization's name, and waits until the
