@@ -36,7 +36,10 @@ def entries(
         .preview()
         .entries(type=type_, locale=locale, order=order, limit=limit, offset=offset)
     )
-    items = body.get("entries") or body.get("items") or []
+    # The delivery envelope (EntryGraph): `roots` carries the page's order, `entries`
+    # maps every id in the graph to its entry.
+    graph = body.get("entries") or {}
+    items = [graph[i] for i in body.get("roots") or [] if i in graph]
     table(
         state,
         body,

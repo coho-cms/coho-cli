@@ -225,6 +225,14 @@ def test_entry_list_table_and_json(run: Run) -> None:
     assert len(json.loads(out)["entries"]) == 5
 
 
+def test_preview_entries_reads_the_delivery_graph(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("preview", "entries")
+    assert ENTRY in out and "blogPost" in out and "hello" in out
+    out, _ = run("-o", "json", "preview", "entries")
+    assert json.loads(out)["roots"] == [ENTRY]
+
+
 def test_entry_set_is_read_modify_write(run: Run, bff: FakeBff) -> None:
     run("use", "acme", PROJECT, "dev")
     out, _ = run(
