@@ -16,6 +16,10 @@ All notable changes to `coho-cli`. The format follows
   that is not a slug, is a usage error. `entry delete @SLUG` asks about both the slug and
   the id it found. `entry list` and `entry get` show the slug from `_slug` while the
   server's entry responses leave out `slug`.
+- `@SLUG` in a reference field's `--set` value, on `entry create` and `entry put`:
+  `--set author=@priya-shah --set 'tags=["@traffic"]'` writes the ids those slugs name
+  on the same ref. Only fields the content type declares as references are looked up, so
+  text keeps a leading `@`; the type is read only when a value starts with `@`.
 - `coho ref switch NAME`: makes a branch, tag or environment of the current project the
   current ref, after checking it exists, keeping the account and project. It and
   `coho branch create` warn when `--ref` or `COHO_REF` still overrides the saved ref.
@@ -69,6 +73,10 @@ All notable changes to `coho-cli`. The format follows
 
 ### Fixed
 
+- `coho preview entries` crashed with `AttributeError: 'str' object has no attribute
+  'get'`, in table and JSON output both. It read the body as a list of entries, but
+  delivery answers with an `EntryGraph`: it now lists `roots` in order, looked up in
+  `entries`.
 - `coho signup`, `coho invite lookup` and `coho invite accept` failed with
   `NOT_LOGGED_IN` for anyone without a login, who are exactly the people they are for.
 - Errors printed their code twice, as in `error NOT_LOGGED_IN: NOT_LOGGED_IN: …`.

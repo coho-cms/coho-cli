@@ -155,3 +155,106 @@ def test_delete_asks_about_the_slug_and_the_id_it_found(
     monkeypatch.setattr("sys.stdin", io.StringIO("n\n"))
     out, _ = run("entry", "delete", "@hello", expect=1)
     assert f"Delete entry @hello ({ENTRY}) on dev?" in out
+
+
+# --- @<slug> in a reference field's --set value ---------------------------------------
+
+REFS = f"/api/v1/accounts/{ACCOUNT}/projects/{PROJECT}/refs/dev"
+PRIYA = "01920000-0000-7000-8000-0000000000a1"
+TRAFFIC = "01920000-0000-7000-8000-0000000000b1"
+DRAINAGE = "01920000-0000-7000-8000-0000000000b2"
+
+
+def blog_post_type(bff: FakeBff) -> None:
+    """A blogPost whose author and tags are references, and whose bio is text."""
+    bff.server.expect_oneshot_request(f"{REFS}/types/blogPost", method="GET").respond_with_json(
+        {
+            "slug": "blogPost",
+            "version": "t1",
+            "definition": {
+                "_name": "Blog post",
+                "fields": [
+                    {"id": "title", "type": "text"},
+                    {"id": "bio", "type": "text"},
+                    {"id": "author", "type": "reference", "of": ["teamMember"]},
+                    {"id": "tags", "type": "reference", "of": ["tag"], "many": True},
+                ],
+            },
+        }
+    )
+
+
+def node(id_: str, slug: str, type_: str) -> dict[str, Any]:
+    return {"id": id_, "slug": slug, "type": type_, "locale": None, "fields": {}}
+
+
+def type_reads(bff: FakeBff) -> list[str]:
+    return [r.path for r, _ in bff.server.log if "/types/" in r.path]
+
+
+def test_a_reference_set_to_a_slug_is_written_as_the_id_it_names(run: Run, bff: FakeBff) -> None:
+    blog_post_type(bff)
+    by_slug(bff, "dev", "priya-shah", graph(node(PRIYA, "priya-shah", "teamMember")))
+    traffic = by_slug(bff, "dev", "traffic", graph(node(TRAFFIC, "traffic", "tag")))
+    by_slug(bff, "dev", "drainage", graph(node(DRAINAGE, "drainage", "tag")))
+    run("use", "acme", PROJECT, "dev")
+    run(
+        "-o", "json", "entry", "put", ENTRY,
+        "--set", "author=@priya-shah",
+        "--set", 'tags=["@traffic","@drainage","@traffic"]',
+        "--set", "bio=@not-a-reference",
+    )  # fmt: skip
+    written = bff.last().get_json()["fields"]
+    assert written["author"] == PRIYA
+    assert written["tags"] == [TRAFFIC, DRAINAGE, TRAFFIC]
+    # Only reference fields are looked up: a text field keeps its @ as typed.
+    assert written["bio"] == "@not-a-reference"
+    assert len(traffic) == 1  # each slug once, however often it is named
+
+
+def test_create_takes_a_slug_in_a_reference_field(run: Run, bff: FakeBff) -> None:
+    blog_post_type(bff)
+    by_slug(bff, "dev", "priya-shah", graph(node(PRIYA, "priya-shah", "teamMember")))
+    run("use", "acme", PROJECT, "dev")
+    run(
+        "entry",
+        "create",
+        "-t",
+        "blogPost",
+        "-s",
+        "hi",
+        "--set",
+        "title=Hi",
+        "--set",
+        "author=@priya-shah",
+    )
+    assert bff.last().method == "POST" and bff.last().get_json()["fields"]["author"] == PRIYA
+
+
+def test_sets_with_no_slug_read_no_type_and_look_nothing_up(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    run("-o", "json", "entry", "put", ENTRY, "--set", f"author={PRIYA}", "--set", "rank=7")
+    assert type_reads(bff) == [] and slug_reads(bff) == []
+
+
+def test_a_reference_slug_nothing_has_is_not_found_and_nothing_is_written(
+    run: Run, bff: FakeBff
+) -> None:
+    blog_post_type(bff)
+    by_slug(bff, "dev", "nobody", problem(404, "ENTRY_NOT_FOUND", "no such slug"))
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("entry", "put", ENTRY, "--set", "author=@nobody", expect=5)
+    assert "no entry with slug 'nobody' on dev" in words(err)
+    assert not any(r.method == "PUT" for r, _ in bff.server.log)
+
+
+def test_put_with_a_file_reads_the_entry_type_to_find_its_references(
+    run: Run, bff: FakeBff, tmp_path: Any
+) -> None:
+    blog_post_type(bff)
+    by_slug(bff, "dev", "priya-shah", graph(node(PRIYA, "priya-shah", "teamMember")))
+    doc = tmp_path / "post.json"
+    doc.write_text(json.dumps({"title": "Hello"}))
+    run("use", "acme", PROJECT, "dev")
+    run("entry", "put", ENTRY, "--file", str(doc), "--set", "author=@priya-shah", "--force")
+    assert bff.last().method == "PUT" and bff.last().get_json()["fields"]["author"] == PRIYA

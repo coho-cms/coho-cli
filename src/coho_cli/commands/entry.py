@@ -9,6 +9,7 @@ import typer
 from coho_management_sdk.models import Entry
 
 from .._entry_ids import entry_id as resolve_entry_id
+from .._entry_ids import reference_ids
 from .._io import parse_set, read_json, set_path
 from .._output import console, emit_json, record, say, table
 from .._slugs import content_slug
@@ -117,13 +118,14 @@ def create(
     hello-world). The slug is fixed once created; renaming `_name` does not change it.
     """
     state = get_state(ctx)
-    fields = _fields(file, set_)
+    ref = state.ref()
+    fields = _fields(file, reference_ids(ref, lambda: type_, _parse_sets(set_)))
     if slug is None:
         name = fields.get("_name")
         if not isinstance(name, str) or not name.strip():
             raise Usage("no --slug given and the entry has no _name to build one from")
         slug = content_slug(name)
-    e = state.ref().entries.create(type=type_, slug=slug, fields=fields)
+    e = ref.entries.create(type=type_, slug=slug, fields=fields)
     _created_or_updated(state, e)
 
 
@@ -159,12 +161,12 @@ def put(
     api = ref.entries
     entry_id = resolve_entry_id(ref, entry_id)
     if file is not None:
-        fields = _fields(file, set_)
+        sets = reference_ids(ref, lambda: api.get(entry_id).type, _parse_sets(set_))
+        fields = _fields(file, sets)
         e = api.put(entry_id, fields, if_match=if_match, force=force)
     else:
         current = api.get(entry_id)
-        for spec in set_ or []:
-            path, value = parse_set(spec)
+        for path, value in reference_ids(ref, lambda: current.type, _parse_sets(set_)):
             set_path(current.fields, path, value)
         e = api.put(current, if_match=if_match)
     _created_or_updated(state, e)
@@ -239,7 +241,11 @@ def references(ctx: typer.Context, entry_id: EntryId) -> None:
 # -- helpers ---------------------------------------------------------------------
 
 
-def _fields(file: str | None, sets: list[str] | None) -> dict[str, Any]:
+def _parse_sets(sets: list[str] | None) -> list[tuple[str, Any]]:
+    return [parse_set(spec) for spec in sets or []]
+
+
+def _fields(file: str | None, sets: list[tuple[str, Any]]) -> dict[str, Any]:
     fields: dict[str, Any] = {}
     if file is not None:
         doc = read_json(file, what="fields")
@@ -250,8 +256,7 @@ def _fields(file: str | None, sets: list[str] | None) -> dict[str, Any]:
             fields = dict(inner) if isinstance(inner, dict) else {}
         else:
             fields = dict(doc)
-    for spec in sets or []:
-        path, value = parse_set(spec)
+    for path, value in sets:
         set_path(fields, path, value)
     if not fields:
         raise Usage("no fields given: pass --file and/or --set")

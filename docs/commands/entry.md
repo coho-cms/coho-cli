@@ -11,6 +11,13 @@ one thing at most; one that names a type or an asset is refused. Lookups work on
 branch, or an environment on one; on a tag, and for a deleted entry, use the id. Ids
 are UUIDs, so none starts with `@`.
 
+A reference field's `--set` value takes `@SLUG` too, on `entry create` and `entry put`:
+`--set author=@priya-shah --set 'tags=["@traffic","@drainage"]'`. Each is looked up on
+the same ref and written as the id it names; the server then checks the ids as it checks
+any. Only fields the entry's content type declares as references are looked up, so a
+text field set to `@something` keeps it as typed. The type is read, and slugs looked up,
+only when some `--set` value starts with `@`. Values in `--file` are written as given.
+
 ## `coho entry list [-t TYPE] [--limit N] [--offset N] [--all]`
 
 One page (default 100, max 1000 — out of range is refused, not clamped), or every

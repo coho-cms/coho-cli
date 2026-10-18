@@ -17,11 +17,18 @@ What that read can and cannot answer:
 
 Entry ids are UUIDs, so no id starts with ``@`` and the prefix cannot shadow one. A UUID
 is a well-formed slug too, so ``@<uuid>`` is looked up as a slug like any other.
+
+The same goes for the value of a reference field in ``--set``: ``author=@priya-shah``,
+``tags=["@traffic","@drainage"]``. Only reference fields, as the entry's content type
+declares them, are looked up, so a text field may still hold ``@handle``. The server
+then checks the ids as it checks any: that each exists and is of a type the field allows.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from typing import Any
 from uuid import UUID
 
 from coho_management_sdk import NotFound, Ref
@@ -86,6 +93,41 @@ def entry_id(ref: Ref, raw: str) -> str:
             "Slugs are unique across all three."
         )
     return str(roots[0])
+
+
+def reference_ids(
+    ref: Ref, type_of: Callable[[], str], sets: list[tuple[str, Any]]
+) -> list[tuple[str, Any]]:
+    """``--set`` values, each ``@<slug>`` in a reference field replaced by the entry id it
+    names on ``ref``. ``type_of`` gives the entry's content type, and is only called, and
+    the type only read, when some value names a slug: otherwise nothing is requested."""
+    if not any(_names_slug(value) for _, value in sets):
+        return sets
+    links = {
+        f.get("id")
+        for f in ref.types.get(type_of()).fields
+        if isinstance(f, dict) and f.get("type") == "reference"
+    }
+    found: dict[str, str] = {}
+
+    def resolve(value: Any) -> Any:
+        if not (isinstance(value, str) and value.startswith("@")):
+            return value
+        if value not in found:
+            found[value] = entry_id(ref, value)
+        return found[value]
+
+    out: list[tuple[str, Any]] = []
+    for path, value in sets:
+        if path.split(".")[0] in links:
+            value = [resolve(v) for v in value] if isinstance(value, list) else resolve(value)
+        out.append((path, value))
+    return out
+
+
+def _names_slug(value: Any) -> bool:
+    values = value if isinstance(value, list) else [value]
+    return any(isinstance(v, str) and v.startswith("@") for v in values)
 
 
 def _is_uuid(value: str) -> bool:
