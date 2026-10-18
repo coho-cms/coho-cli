@@ -7,7 +7,7 @@ from typing import Annotated
 import typer
 
 from .._entry_ids import entry_id as resolve_entry_id
-from .._output import emit_json, table
+from .._output import console, emit_json, table
 from .._state import get_state
 
 app = typer.Typer(
@@ -49,6 +49,10 @@ def entries(
             for e in items
         ],
     )
+    # No --all: each live page resolves the whole ref, so walking every page is
+    # quadratic. `coho entry list --all` is the way to see everything.
+    if state.output != "json" and body.get("hasMore"):
+        console.print(f"[dim]more: --offset {offset + len(items)}[/dim]")
 
 
 @app.command("entry")

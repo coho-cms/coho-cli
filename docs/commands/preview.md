@@ -12,7 +12,9 @@ the same query parameters — without publishing it.
   back (the same answer as a locale nobody has translated into).
 - `--order` is any declared scalar field, `-` prefix for descending. `repeater` and
   `json` fields are neither sortable nor filterable.
-- `--limit` 1..100, default 25.
+- `--limit` 1..100, default 25. When more entries follow, the table ends with the
+  `--offset` of the next page (in JSON, `hasMore`). There is no `--all`: each live page
+  resolves the whole ref, so use [`entry list --all`](entry.md) to see everything.
 
 ## `coho preview entry ID [--locale L]`
 

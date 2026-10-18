@@ -8,6 +8,9 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho preview entries` ends the table with `more: --offset N` when another page
+  follows, as `entry list` does. It has no `--all`, because each live page resolves the
+  whole ref.
 - `@SLUG` wherever a command takes an entry id: `entry get`, `put`, `delete`, `history`,
   `references` and `preview entry`. The slug is looked up on the same ref with one
   request (the BFF's live `preview/{ref}/entries-by-slug/{slug}`), then the command runs

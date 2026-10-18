@@ -231,6 +231,24 @@ def test_preview_entries_reads_the_delivery_graph(run: Run) -> None:
     assert ENTRY in out and "blogPost" in out and "hello" in out
     out, _ = run("-o", "json", "preview", "entries")
     assert json.loads(out)["roots"] == [ENTRY]
+    assert "more:" not in out
+
+
+def test_preview_entries_says_where_the_next_page_starts(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    graph = {
+        "roots": [ENTRY],
+        "entries": {ENTRY: {"id": ENTRY, "type": "blogPost", "slug": "hello", "fields": {}}},
+        "unresolved": {},
+        "hasMore": True,
+    }
+    path = f"/api/v1/accounts/{ACCOUNT}/projects/{PROJECT}/preview/dev/entries"
+    bff.server.expect_oneshot_request(path, method="GET").respond_with_json(graph)
+    out, _ = run("preview", "entries", "--limit", "1", "--offset", "3")
+    assert "more: --offset 4" in out
+    bff.server.expect_oneshot_request(path, method="GET").respond_with_json(graph)
+    out, _ = run("-o", "json", "preview", "entries", "--limit", "1")
+    assert json.loads(out)["hasMore"] is True
 
 
 def test_entry_set_is_read_modify_write(run: Run, bff: FakeBff) -> None:
