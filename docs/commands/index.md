@@ -13,11 +13,11 @@ Global options: `-p/--profile`, `-o/--output table|json`, `--url`, `--account`,
 |---|---|
 | [auth](auth.md) | `login`, `logout`, `whoami`, `signup`, `configure`, `profile list/show/use/delete` |
 | [context](context.md) | `use`, `status` |
-| [account](account.md) | `account list/show/rename/entitlements/events/plans` |
+| [account](account.md) | `account list/show/rename/entitlements/usage/events/plans` |
 | [member](member.md) | `member list/role/remove/leave` |
 | [invite](invite.md) | `invite create/list/revoke/lookup/accept` |
 | [user](user.md) | `user rename/logins/detach-login` |
-| [project](project.md) | `project create/show/list/register/forget` |
+| [project](project.md) | `project create/show/list/usage/register/forget` |
 | [role](role.md) | `role list/grant/revoke/ladder` |
 | [ref](ref.md) | `ref list/show/switch/describe` |
 | [branch](branch.md) | `branch list/create` |

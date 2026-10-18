@@ -16,6 +16,7 @@ from coho_management_sdk.errors import (
     AccountNotFound,
     AuthError,
     EnvironmentMoved,
+    Forbidden,
     MergeConflict,
     NotFound,
     NotLoggedIn,
@@ -214,6 +215,8 @@ def _print_error(exc: CohoError) -> None:
         err.print("Pass --if-match <etag> from your last read, or --force to overwrite.")
     elif isinstance(exc, NotLoggedIn):
         err.print("Run `coho login`, or set COHO_ACCESS_TOKEN.")
+    elif isinstance(exc, Forbidden) and _state.current and _state.current.forbidden_hint:
+        err.print(_state.current.forbidden_hint, highlight=False)
     errors = exc.context.get("errors")
     if isinstance(errors, list) and errors:
         for e in errors:

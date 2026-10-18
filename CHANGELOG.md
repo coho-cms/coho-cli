@@ -8,6 +8,16 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho project usage [PROJECT]` and `coho account usage`: metered usage (coho-data doc
+  41), as a table or, with `-o json`, the report exactly as the server sent it. A
+  project's shows delivery by key with requests per distinct URL (the client that is not
+  caching), management by people and project tokens and by class, content, history and
+  assets; anyone who can read the project may, project tokens included. The account's
+  sums every project and lists each one's totals, for admins: a member's `FORBIDDEN`
+  says to use `coho project usage` instead. Both take `--grain hour|day`, `--from`,
+  `--to`, `--meter` (repeatable) and `--periods` for a line per hour or day. Needs
+  coho-management-sdk with `usage()` and a server with the usage routes.
+
 - `coho preview entries` ends the table with `more: --offset N` when another page
   follows, as `entry list` does. It has no `--all`, because each live page resolves the
   whole ref.

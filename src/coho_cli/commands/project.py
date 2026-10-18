@@ -1,4 +1,4 @@
-"""project: create, show, list, register, forget."""
+"""project: create, show, list, usage, register, forget."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import Annotated, Any
 import typer
 from coho_management_sdk.models import ProjectInfo
 
+from .. import _usage
 from .._output import console, record, say, table
 from .._state import State, Usage, get_state
 
@@ -55,6 +56,31 @@ def show(
     state.profile.remember_project(acct.id, info.name, info.id)
     state.save()
     _show(state, info.raw, info)
+
+
+@app.command("usage")
+def usage(
+    ctx: typer.Context,
+    project: Annotated[str | None, typer.Argument(help="Id or name; default: current.")] = None,
+    grain: _usage.Grain = "hour",
+    start: _usage.Start = None,
+    end: _usage.End = None,
+    meter: _usage.Meters = None,
+    periods: _usage.Periods = False,
+) -> None:
+    """What a project used: delivery by key, management, content, history and assets.
+
+    Metered hourly in UTC: the last day by default, `--grain day` for the last 30 days.
+    Anyone who can read the project may, project tokens included. The by-key table's
+    requests per URL finds the client that is not caching.
+    """
+    state = get_state(ctx)
+    q = _usage.query(grain, start, end, meter)
+    acct = state.account()
+    proj = acct.project(state.resolve_project_id(acct, project)) if project else state.project()
+    report = proj.usage(**q.kwargs())
+    name = proj.name if state.output != "json" else proj.id
+    _usage.show_project(state, name, report, q, periods)
 
 
 @app.command("list")

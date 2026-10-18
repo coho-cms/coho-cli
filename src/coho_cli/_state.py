@@ -45,6 +45,9 @@ class State:
     # Set when the account came from the saved context rather than `--account`, so an
     # ACCOUNT_NOT_FOUND can say the saved one may be gone: deleted, or a reset environment.
     used_saved_account: bool = field(default=False, init=False)
+    # What to say after a 403, when the command knows better than the server's message
+    # what the person can do instead.
+    forbidden_hint: str | None = field(default=None, init=False)
 
     @cached_property
     def config(self) -> Config:

@@ -30,6 +30,39 @@ ones granted to you otherwise. `*` marks the current one. A project the local
 registry remembers but the server no longer lists for you (deleted, or your access
 removed) is shown as `local only`.
 
+## `coho project usage [PROJECT]`
+
+What the project used, metered hourly in UTC (coho-data doc 41): `GET
+…/projects/{project}/usage`. Default: the current project. Anyone who can read the
+project may, project tokens included, so a pipeline can watch its own.
+
+```
+coho project usage                         # the last day, hour by hour
+coho project usage site --grain day        # the last 30 days, day by day
+coho project usage --from 2026-10-01 --to 2026-10-08 --grain day
+coho project usage --meter delivery.requests --meter delivery.bytes
+coho project usage --periods               # and a line per hour
+coho -o json project usage                 # the report exactly as the server sent it
+```
+
+The table has four parts. **Delivery**: requests, 304s, refusals, bytes sent and
+billable, the peak per minute, and a line per delivery key with its requests per
+distinct URL per period. A client that caches asks for each URL about once per tag, and
+once per `max-age` for an environment; tens or hundreds a URL is one fetching the same
+answer again, and sending `If-None-Match` turns a repeat into a `304`. **Management**:
+requests by people and by project tokens, split by class, versions written and how many
+changed nothing, and preview reads. **Content and history**, and **Assets**, whose
+traffic comes from the CDN's logs minutes after the request.
+
+`--from` and `--to` take ISO 8601; a bare date is midnight UTC. `--from` is rounded down
+and `--to` up to whole periods, and `--to` is exclusive. Hourly rows are kept 90 days,
+so ask for `--grain day` further back; a range the stored data cannot answer is
+`USAGE_QUERY_INVALID`. `--meter` shows just those meters, each with its series. The
+totals are the portal's: a flow sums, a peak takes its largest period, a stock its
+latest value.
+
+`coho account usage` is the account's, every project summed, for its admins.
+
 ## `coho project register ID [NAME]`
 
 Fetches the project to check it exists and that you can see it, then remembers it

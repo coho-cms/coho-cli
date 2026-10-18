@@ -1,4 +1,4 @@
-"""account: list, show, rename, entitlements, events, plans."""
+"""account: list, show, rename, entitlements, usage, events, plans."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from .. import _usage
 from .._output import record, table
 from .._state import get_state
 
@@ -78,6 +79,32 @@ def entitlements(ctx: typer.Context) -> None:
             ("max members", _limit(ent.max_members)),
         ],
     )
+
+
+@app.command("usage")
+def usage(
+    ctx: typer.Context,
+    grain: _usage.Grain = "hour",
+    start: _usage.Start = None,
+    end: _usage.End = None,
+    meter: _usage.Meters = None,
+    periods: _usage.Periods = False,
+) -> None:
+    """What the account used, every project summed, and each project's totals (admin).
+
+    Metered hourly in UTC: the last day by default, `--grain day` for the last 30 days.
+    The account's report names every project, so only its admins may read it; anyone
+    who can read a project can see that one with `coho project usage`.
+    """
+    state = get_state(ctx)
+    q = _usage.query(grain, start, end, meter)
+    acct = state.account()
+    state.forbidden_hint = (
+        "The account's usage is for its admins. `coho project usage <project>` shows one "
+        "project's to anyone who can read it."
+    )
+    report = acct.usage(**q.kwargs())
+    _usage.show_account(state, acct.name or acct.id, report, q, periods)
 
 
 @app.command("events")
