@@ -101,7 +101,7 @@ coho entry put 0192d6… --file post.json --if-match '"0192e7…"'
 ## 5. Branch, review, merge
 
 ```bash
-coho branch create feature/pricing --use     # from the current ref; switches context to it
+coho branch create feature/pricing           # from the current ref; switches context to it
 coho entry put 0192d6… --set title.en-US="New pricing"
 coho diff v0.0.x                              # what merging this branch into the trunk would do
 ```

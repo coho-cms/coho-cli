@@ -41,6 +41,9 @@ All notable changes to `coho-cli`. The format follows
 
 ### Changed
 
+- `coho branch create` makes the new branch the current ref, as `coho project create`
+  makes the new project current; `--no-use` keeps the current ref. When `--ref` or
+  `COHO_REF` is set, it warns that the override still wins over the saved ref.
 - `coho signup` opens the BFF's sign-up page in the browser, as `coho login` opens the
   sign-in page, and makes no API call itself. Sign-up stays an interactive session;
   before release that page verifies a captcha.

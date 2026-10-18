@@ -9,7 +9,7 @@ coho use acme                               # the account; then a project, then 
 coho project create "Marketing site"        # trunk v0.0.x + dev/qa/stage/prod
 coho type put blogPost --file blogPost.json
 coho entry create -t blogPost -s hello --set title.en-US=Hello
-coho branch create feature/pricing --use
+coho branch create feature/pricing          # and switches to it
 coho diff v0.0.x                            # three-dot, conflicts included
 coho merge --into v0.0.x -m "New pricing"
 coho tag create v1.4.0 --branch v0.0.x -m "Q3 catalogue"

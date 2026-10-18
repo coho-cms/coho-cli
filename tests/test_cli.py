@@ -52,6 +52,38 @@ def test_use_unknown_ref_is_not_found_exit_5(run: Run) -> None:
     assert "REF_NOT_FOUND" in err
 
 
+def test_branch_create_makes_the_branch_the_current_ref(run: Run, home: Path) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, err = run("branch", "create", "feature/spring")
+    assert "Context ref is now feature/spring" in out and "warning" not in err
+    assert Config.load(home / "config.toml").profile("test").context.ref == "feature/spring"
+    out, _ = run("status")
+    assert "feature/spring" in out
+
+
+def test_branch_create_no_use_keeps_the_current_ref(run: Run, home: Path) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("branch", "create", "feature/spring", "--no-use")
+    assert "Context ref" not in out
+    assert Config.load(home / "config.toml").profile("test").context.ref == "dev"
+
+
+def test_branch_create_warns_when_coho_ref_hides_the_switch(
+    run: Run, home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run("use", "acme", PROJECT, "dev")
+    monkeypatch.setenv("COHO_REF", "dev")
+    _, err = run("branch", "create", "feature/spring")
+    assert "COHO_REF=dev overrides the saved ref, so commands still use dev" in err
+    assert Config.load(home / "config.toml").profile("test").context.ref == "feature/spring"
+
+
+def test_branch_create_warns_when_ref_flag_hides_the_switch(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("--ref", "dev", "branch", "create", "feature/spring")
+    assert "--ref dev overrides the saved ref" in err
+
+
 def test_missing_context_is_usage_error(run: Run) -> None:
     _, err = run("entry", "list", expect=2)
     assert "coho use" in err

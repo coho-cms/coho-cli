@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Annotated
 
 import typer
@@ -39,9 +40,7 @@ def create(
     at: Annotated[
         int | None, typer.Option("--at", help="Branch at an explicit sequence, not a timestamp.")
     ] = None,
-    use: Annotated[
-        bool, typer.Option("--use/--no-use", help="Switch the context ref to it.")
-    ] = False,
+    use: Annotated[bool, typer.Option("--use/--no-use", help="Make it the current ref.")] = True,
 ) -> None:
     """Create a feature branch (or a version branch with --version)."""
     state = get_state(ctx)
@@ -75,3 +74,13 @@ def create(
         state.profile.context.ref = b.name
         state.save()
         say(state, f"Context ref is now [bold]{b.name}[/bold].")
+        # The saved ref comes last: a --ref or COHO_REF still wins, so `coho status` would
+        # not show the new branch. Say so, rather than look as if the switch did nothing.
+        override = state.overrides.ref
+        if override and override != b.name:
+            given = (
+                f"COHO_REF={override}"
+                if os.environ.get("COHO_REF") == override
+                else f"--ref {override}"
+            )
+            warn(f"{given} overrides the saved ref, so commands still use {override}")

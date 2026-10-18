@@ -74,7 +74,8 @@ Resolution order, highest first:
 A command that needs a value none of these provide is a usage error (exit 2) naming
 the flag and the `use` command.
 
-`coho project create` and `coho branch create --use` update the context for you.
+`coho project create` and `coho branch create` update the context for you, unless given
+`--no-use`.
 
 ## The local project registry
 
