@@ -94,7 +94,37 @@ incomplete, not corrupt, and legal per-ref while a target waits to be merged.
 `coho entry references ID` reports what links to an entry; `coho entry delete` shows
 the count before asking.
 
-Repeater items are objects with a server-assigned `_id`.
+Repeater items are objects with an `_id` and a `_type`. The server assigns the `_id`
+when an item has none, and keeps one it was sent. `_type` names the item's component
+type; the server fills it in when the repeater holds only one.
+
+```bash
+coho entry put @hello --set 'references=[{"authors": "ASCE", "year": 2022, "title": "Minimum design loads"}]'
+```
+
+### Component types
+
+A repeater's items are typed by **component types**, defined like content types with
+`"kind": "component"`:
+
+```json
+{
+  "_name": "Citation",
+  "kind": "component",
+  "fields": [
+    { "id": "authors", "type": "text",    "required": true },
+    { "id": "year",    "type": "integer", "required": true },
+    { "id": "title",   "type": "text",    "required": true }
+  ]
+}
+```
+
+`coho type put --file citation.json` creates it. A component type has no entries: its
+items live inside an entry's repeater, and each is validated against it on every write
+and merge. `coho type list` shows each type's `KIND`, and a type's kind cannot change.
+For now a component cannot hold a `reference`, `asset` or `repeater` field, or a
+`localized` one. Deleting a component that a repeater still holds is `TYPE_IN_USE`
+without `--confirm-destructive`.
 
 ### Versions and ETags
 

@@ -8,6 +8,12 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- Component types (coho-data doc 40 §14.10): `coho type put` takes a definition with
+  `"kind": "component"`, and `type list`, `get` and `put` show each type's `KIND`. A
+  repeater takes its items as a JSON list, `--set 'references=[{…}]'`, and the server
+  assigns each item's `_id` and, where the repeater holds one component, its `_type`.
+  Needs coho-management-sdk with `ContentType.kind` and a server with component types.
+
 - `coho project usage [PROJECT]` and `coho account usage`: metered usage (coho-data doc
   41), as a table or, with `-o json`, the report exactly as the server sent it. A
   project's shows delivery by key with requests per distinct URL (the client that is not

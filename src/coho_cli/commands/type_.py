@@ -16,27 +16,38 @@ app = typer.Typer(help="Content types, as resolved on the current ref.", no_args
 
 @app.command("list")
 def list_(ctx: typer.Context) -> None:
-    """Content types on the current ref."""
+    """Content and component types on the current ref."""
     state = get_state(ctx)
     types = state.ref().types.list()
     table(
         state,
         {"types": [t.raw for t in types]},
-        ["TYPE", "NAME", "FIELDS", "VERSION"],
-        [(t.slug, t.name, ", ".join(f.get("id", "?") for f in t.fields), t.version) for t in types],
+        ["TYPE", "KIND", "NAME", "FIELDS", "VERSION"],
+        [
+            (t.slug, t.kind, t.name, ", ".join(f.get("id", "?") for f in t.fields), t.version)
+            for t in types
+        ],
     )
 
 
 @app.command("get")
 def get(ctx: typer.Context, slug: Annotated[str, typer.Argument()]) -> None:
-    """One content type, with its ETag."""
+    """One content or component type, with its ETag."""
     state = get_state(ctx)
     t = state.ref().types.get(slug)
     if state.output == "json":
         emit_json(t.raw | {"etag": t.etag})
         return
     record(
-        state, t.raw, [("type", t.slug), ("name", t.name), ("version", t.version), ("etag", t.etag)]
+        state,
+        t.raw,
+        [
+            ("type", t.slug),
+            ("kind", t.kind),
+            ("name", t.name),
+            ("version", t.version),
+            ("etag", t.etag),
+        ],
     )
     console.print()
     table(
@@ -80,10 +91,12 @@ def put(
         ),
     ] = None,
 ) -> None:
-    """Create or update a content type from a JSON definition.
+    """Create or update a content or component type from a JSON definition.
 
     The file holds the definition itself (`{"_name": …, "fields": […]}`) or a wrapper
     `{"definition": …}`. Creating needs no ETag; updating needs --if-match or --force.
+    A component type, the items of a repeater, says `"kind": "component"`; a type's
+    kind cannot change once it exists.
 
     With no SLUG, the slug is built from `_name` in camelCase ("Blog post" -> blogPost).
     That slug is fixed once the type exists: renaming `_name` without passing the old
@@ -117,7 +130,13 @@ def put(
         record(
             state,
             t.raw,
-            [("type", t.slug), ("name", t.name), ("version", t.version), ("etag", t.etag)],
+            [
+                ("type", t.slug),
+                ("kind", t.kind),
+                ("name", t.name),
+                ("version", t.version),
+                ("etag", t.etag),
+            ],
         )
 
 

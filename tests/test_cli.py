@@ -262,6 +262,34 @@ def test_entry_set_is_read_modify_write(run: Run, bff: FakeBff) -> None:
     assert bff.last().headers["If-Match"] == '"v1"'
 
 
+def test_entry_set_takes_a_repeater_as_a_json_list(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    items = '[{"authors": "ASCE", "year": 2022, "title": "Minimum design loads"}]'
+    out, _ = run("-o", "json", "entry", "put", ENTRY, "--set", f"references={items}")
+    # Sent as a list of objects, not a string; the server stamps each item's _id and _type.
+    assert json.loads(out)["fields"]["references"] == json.loads(items)
+
+
+def test_type_list_says_which_types_are_components(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    path = f"/api/v1/accounts/{ACCOUNT}/projects/{PROJECT}/refs/dev/types"
+    citation = {"_name": "Citation", "kind": "component", "fields": [{"id": "authors"}]}
+    bff.server.expect_oneshot_request(path, method="GET").respond_with_json(
+        {
+            "types": [
+                {"slug": "blogPost", "version": "t1", "definition": {"_name": "B", "fields": []}},
+                {"slug": "citation", "version": "c1", "kind": "component", "definition": citation},
+            ]
+        }
+    )
+    out, _ = run("type", "list")
+    assert "KIND" in out
+    rows = {
+        line.split()[0]: line.split()[1] for line in out.splitlines() if line.strip()[:1].islower()
+    }
+    assert rows == {"blogPost": "content", "citation": "component"}
+
+
 def test_entry_put_file_needs_precondition(run: Run, tmp_path: Path) -> None:
     run("use", "acme", PROJECT, "dev")
     f = tmp_path / "fields.json"
