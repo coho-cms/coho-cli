@@ -265,9 +265,9 @@ def test_entry_set_is_read_modify_write(run: Run, bff: FakeBff) -> None:
 def test_entry_set_takes_a_repeater_as_a_json_list(run: Run, bff: FakeBff) -> None:
     run("use", "acme", PROJECT, "dev")
     items = '[{"authors": "ASCE", "year": 2022, "title": "Minimum design loads"}]'
-    out, _ = run("-o", "json", "entry", "put", ENTRY, "--set", f"references={items}")
+    out, _ = run("-o", "json", "entry", "put", ENTRY, "--set", f"citations={items}")
     # Sent as a list of objects, not a string; the server stamps each item's _id and _type.
-    assert json.loads(out)["fields"]["references"] == json.loads(items)
+    assert json.loads(out)["fields"]["citations"] == json.loads(items)
 
 
 def test_type_list_says_which_types_are_components(run: Run, bff: FakeBff) -> None:

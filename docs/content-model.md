@@ -99,7 +99,7 @@ when an item has none, and keeps one it was sent. `_type` names the item's compo
 type; the server fills it in when the repeater holds only one.
 
 ```bash
-coho entry put @hello --set 'references=[{"authors": "ASCE", "year": 2022, "title": "Minimum design loads"}]'
+coho entry put @hello --set 'citations=[{"authors": "ASCE", "year": 2022, "title": "Minimum design loads"}]'
 ```
 
 ### Component types

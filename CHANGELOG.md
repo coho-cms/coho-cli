@@ -10,7 +10,7 @@ All notable changes to `coho-cli`. The format follows
 
 - Component types (coho-data doc 40 §14.10): `coho type put` takes a definition with
   `"kind": "component"`, and `type list`, `get` and `put` show each type's `KIND`. A
-  repeater takes its items as a JSON list, `--set 'references=[{…}]'`, and the server
+  repeater takes its items as a JSON list, `--set 'citations=[{…}]'`, and the server
   assigns each item's `_id` and, where the repeater holds one component, its `_type`.
   Needs coho-management-sdk with `ContentType.kind` and a server with component types.
 
