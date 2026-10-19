@@ -52,6 +52,7 @@ from .commands import (
     tag,
     tier,
     token,
+    trait,
     type_,
     user,
 )
@@ -172,6 +173,7 @@ app.add_typer(ref.app, name="ref")
 app.add_typer(branch.app, name="branch")
 app.add_typer(tag.app, name="tag")
 app.add_typer(type_.app, name="type")
+app.add_typer(trait.app, name="trait")
 app.add_typer(entry.app, name="entry")
 app.add_typer(asset.app, name="asset")
 app.add_typer(env.app, name="env")
@@ -221,6 +223,16 @@ def _print_error(exc: CohoError) -> None:
     if isinstance(errors, list) and errors:
         for e in errors:
             err.print(f"  {e.get('path', '')}: {e.get('message', '')}", highlight=False)
+    # A destructive type or trait change, or a trait in use: the types it reaches (doc 05 §5.4).
+    reaches = exc.context.get("affectedTypes")
+    if isinstance(reaches, list) and reaches:
+        entries = exc.context.get("entryCount")
+        counted = (
+            f", and {entries} entr{'y' if entries == 1 else 'ies'}"
+            if isinstance(entries, int)
+            else ""
+        )
+        err.print(f"  reaches: {', '.join(str(t) for t in reaches)}{counted}", highlight=False)
     for key_ in (
         "permission",
         "ref",

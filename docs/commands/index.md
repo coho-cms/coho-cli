@@ -22,6 +22,7 @@ Global options: `-p/--profile`, `-o/--output table|json`, `--url`, `--account`,
 | [ref](ref.md) | `ref list/show/switch/describe` |
 | [branch](branch.md) | `branch list/create` |
 | [tag](tag.md) | `tag list/create` |
+| [trait](trait.md) | `trait list/get/put/delete` |
 | [type](type.md) | `type list/get/put/delete` |
 | [entry](entry.md) | `entry list/get/create/put/delete/history/references` |
 | [asset](asset.md) | `asset upload/list/get/url/put/delete` — images and other files; public by URL |

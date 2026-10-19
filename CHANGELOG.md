@@ -8,6 +8,12 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho trait list`, `get`, `put` and `delete` (coho-data doc 05 §10): traits, named groups
+  of fields that types take by naming them in `traits`. `trait list` shows the types that
+  take each. A refused trait or type change now prints what it reaches, `reaches: page,
+  servicePage, and 12 entries`, and a trait in use is refused with the types that take it.
+- `coho type get` shows the type it extends, the traits it takes, and whether it is
+  abstract (coho-data doc 05 §9).
 - Component types (coho-data doc 40 §14.10): `coho type put` takes a definition with
   `"kind": "component"`, and `type list`, `get` and `put` show each type's `KIND`. A
   repeater takes its items as a JSON list, `--set 'citations=[{…}]'`, and the server

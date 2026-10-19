@@ -715,3 +715,47 @@ def test_login_stores_a_project_token_without_asking_who_it_is(run: Run, bff: Fa
     out, _ = run("login", "--token", "coho_pt_" + "a" * 43)
     assert "project token" in out
     assert not any(r.path == "/api/v1/me" for r in bff.requests)
+
+
+def test_trait_list_names_the_types_that_take_each(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    path = f"/api/v1/accounts/{ACCOUNT}/projects/{PROJECT}/refs/dev/types"
+    page = {"_name": "Page", "traits": ["seo"], "fields": []}
+    bff.server.expect_oneshot_request(path, method="GET").respond_with_json(
+        {"types": [{"slug": "page", "version": "p1", "definition": page}]}
+    )
+    out, _ = run("trait", "list")
+    assert "TAKEN BY" in out
+    assert "seo" in out and "metaTitle" in out and "page" in out
+
+
+def test_trait_put_and_a_refusal_that_says_how_far_it_reaches(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    required = '{"_name":"SEO","fields":[{"id":"metaTitle","type":"text","required":true}]}'
+    _, err = run("trait", "put", "seo", "-f", required, expect=2)
+    assert "--if-match" in err
+    _, err = run("trait", "put", "seo", "-f", required, "--if-match", '"s1"', expect=1)
+    assert "DESTRUCTIVE_SCHEMA_CHANGE" in err
+    assert "reaches: blogPost, and 5 entries" in err
+    out, _ = run(
+        "-o",
+        "json",
+        "trait",
+        "put",
+        "seo",
+        "-f",
+        required,
+        "--if-match",
+        '"s1"',
+        "--confirm-destructive",
+    )
+    assert '"s2"' in out
+
+
+def test_a_trait_in_use_is_not_deleted(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("-y", "trait", "delete", "seo", expect=1)
+    assert "TRAIT_IN_USE" in err
+    assert "reaches: blogPost" in err
+    out, _ = run("-y", "trait", "delete", "unused")
+    assert "Deleted trait unused." in out
