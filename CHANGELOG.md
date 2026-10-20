@@ -14,6 +14,12 @@ All notable changes to `coho-cli`. The format follows
   servicePage, and 12 entries`, and a trait in use is refused with the types that take it.
 - `coho type get` shows the type it extends, the traits it takes, and whether it is
   abstract (coho-data doc 05 §9).
+
+### Fixed
+
+- An `@slug` in a field a type inherits, or takes from a trait, is written as the id it
+  names: `coho entry create -t photoGallery --set author=@tom-okafor` stored the text
+  `@tom-okafor`, because the slug was looked up only in the fields the type declares itself.
 - Component types (coho-data doc 40 §14.10): `coho type put` takes a definition with
   `"kind": "component"`, and `type list`, `get` and `put` show each type's `KIND`. A
   repeater takes its items as a JSON list, `--set 'citations=[{…}]'`, and the server

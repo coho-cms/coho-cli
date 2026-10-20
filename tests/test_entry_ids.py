@@ -231,6 +231,51 @@ def test_create_takes_a_slug_in_a_reference_field(run: Run, bff: FakeBff) -> Non
     assert bff.last().method == "POST" and bff.last().get_json()["fields"]["author"] == PRIYA
 
 
+def test_a_slug_in_a_field_the_type_inherits_is_written_as_the_id(run: Run, bff: FakeBff) -> None:
+    # Read effective: the gallery declares only photos, and inherits author from blogPost.
+    bff.server.expect_oneshot_request(
+        f"{REFS}/types/photoGallery", method="GET", query_string="resolve=effective"
+    ).respond_with_json(
+        {
+            "slug": "photoGallery",
+            "version": "g1",
+            "definition": {
+                "_name": "Photo gallery",
+                "extends": "blogPost",
+                "fields": [
+                    {
+                        "id": "author",
+                        "type": "reference",
+                        "of": ["teamMember"],
+                        "from": {"type": "blogPost"},
+                    },
+                    {
+                        "id": "photos",
+                        "type": "asset",
+                        "many": True,
+                        "from": {"type": "photoGallery"},
+                    },
+                ],
+            },
+        }
+    )
+    by_slug(bff, "dev", "priya-shah", graph(node(PRIYA, "priya-shah", "teamMember")))
+    run("use", "acme", PROJECT, "dev")
+    run(
+        "entry",
+        "create",
+        "-t",
+        "photoGallery",
+        "-s",
+        "g",
+        "--set",
+        "title=G",
+        "--set",
+        "author=@priya-shah",
+    )
+    assert bff.last().get_json()["fields"]["author"] == PRIYA
+
+
 def test_sets_with_no_slug_read_no_type_and_look_nothing_up(run: Run, bff: FakeBff) -> None:
     run("use", "acme", PROJECT, "dev")
     run("-o", "json", "entry", "put", ENTRY, "--set", f"author={PRIYA}", "--set", "rank=7")

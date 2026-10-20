@@ -106,9 +106,11 @@ def reference_ids(
     slug: otherwise nothing is requested."""
     if not any(_names_slug(value) for _, value in sets):
         return sets
+    # Effective, so a field the type inherits, or takes from a trait, is found too: a
+    # subtype's `author=@priya-shah` names its parent's reference field.
     kinds = {
         f.get("id"): f.get("type")
-        for f in ref.types.get(type_of()).fields
+        for f in ref.types.get(type_of(), effective=True).fields
         if isinstance(f, dict) and f.get("type") in ("reference", "asset")
     }
     found: dict[str, str] = {}
