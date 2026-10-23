@@ -57,7 +57,7 @@ whole problem document on stdout so a script can read the conflicts or the entri
 | `MERGE_RESOLUTION_REJECTED` | 400 | | a resolution does not apply |
 | `MERGE_REFS_MOVED` | 400 | | the refs changed since the diff you reviewed |
 | `CANNOT_MERGE` | 400 | | |
-| `TIER_NOT_FOUND`, `TIER_ID_TAKEN`, `TIER_ORDER_TAKEN`, `TIER_NOT_EMPTY` | 400 | | |
+| `TIER_NOT_FOUND`, `TIER_ID_TAKEN`, `TIER_NOT_EMPTY` | 400 | | |
 | `NOT_AN_ENVIRONMENT`, `INVALID_PROMOTION_TARGET` | 400 | | |
 | `ENVIRONMENT_MOVED` | 400 | | `--expected` did not match |
 | `LIVE_ENVIRONMENT_LIMIT` | 400 | | |

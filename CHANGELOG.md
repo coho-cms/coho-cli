@@ -8,12 +8,20 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho tier move ID --ord N` (coho-data doc 11, M6-15): moves a tier in the pipeline, and
+  the tiers it passes shift by one. Needs coho-management-sdk with `tiers.move`.
 - `coho trait list`, `get`, `put` and `delete` (coho-data doc 05 §10): traits, named groups
   of fields that types take by naming them in `traits`. `trait list` shows the types that
   take each. A refused trait or type change now prints what it reaches, `reaches: page,
   servicePage, and 12 entries`, and a trait in use is refused with the types that take it.
 - `coho type get` shows the type it extends, the traits it takes, and whether it is
   abstract (coho-data doc 05 §9).
+
+### Changed
+
+- `coho tier create --ord N` inserts: a position another tier holds moves that tier and the
+  ones after it along, where it was refused with `TIER_ORDER_TAKEN`, and anything past the
+  end is the end (coho-data doc 11, M6-15). `coho tier delete` closes the gap it leaves.
 
 ### Fixed
 

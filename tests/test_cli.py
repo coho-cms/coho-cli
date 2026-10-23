@@ -449,6 +449,15 @@ def test_promote_and_rollback(run: Run, bff: FakeBff) -> None:
     assert "ENVIRONMENT_MOVED" in err
 
 
+def test_tier_move_sends_the_position(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT)
+    out, _ = run("-o", "json", "tier", "move", "prod", "--ord", "1")
+    assert json.loads(out)["ord"] == 1
+    assert bff.last().method == "PATCH"
+    assert bff.last().get_json() == {"ord": 1}
+    run("tier", "move", "prod", "--ord", "-1", expect=2)
+
+
 def test_key_create_prints_secret_once(run: Run) -> None:
     run("use", "acme", PROJECT)
     out, err = run("key", "create", "--label", "site", "--ref", "prod")

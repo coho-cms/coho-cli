@@ -1,4 +1,4 @@
-"""tier: list, create, delete — the promotion pipeline (owner)."""
+"""tier: list, create, move, delete — the promotion pipeline (owner)."""
 
 from __future__ import annotations
 
@@ -38,7 +38,14 @@ def create(
         str,
         typer.Option("--resolves", help="`live` (branch tips) or `snapshot` (tags). Immutable."),
     ],
-    ord_: Annotated[int, typer.Option("--ord", help="Display order; advisory.")],
+    ord_: Annotated[
+        int,
+        typer.Option(
+            "--ord",
+            min=0,
+            help="Position to insert at; a taken one moves that tier and the rest along.",
+        ),
+    ],
 ) -> None:
     """Define a tier (owner)."""
     state = get_state(ctx)
@@ -55,6 +62,21 @@ def create(
             ("permission", t.promote_permission),
         ],
     )
+
+
+@app.command("move")
+def move(
+    ctx: typer.Context,
+    tier_id: Annotated[str, typer.Argument()],
+    ord_: Annotated[
+        int,
+        typer.Option("--ord", min=0, help="Position to move to; the tiers it passes shift by one."),
+    ],
+) -> None:
+    """Move a tier in the pipeline (owner)."""
+    state = get_state(ctx)
+    t = state.project().tiers.move(tier_id, ord_)
+    record(state, t.raw, [("tier", t.id), ("ord", t.ord)])
 
 
 @app.command("delete")
