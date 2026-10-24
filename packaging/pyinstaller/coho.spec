@@ -38,6 +38,6 @@ a = Analysis(
 pyz = PYZ(a.pure)  # noqa: F821
 # UTF-8 mode: otherwise Windows writes redirected output in its ANSI code page (cp1252),
 # which cannot encode the box drawing in rich's help and tables, and `coho --help > x` dies.
-options = [("X utf8_mode=1", None, "OPTION")]
+options = [("X utf8", None, "OPTION")]
 exe = EXE(pyz, a.scripts, options, exclude_binaries=True, name="coho", console=True)  # noqa: F821
 coll = COLLECT(exe, a.binaries, a.datas, name="coho")  # noqa: F821
