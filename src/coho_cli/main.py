@@ -6,6 +6,7 @@ Context borrowed from ``git``: ``coho use <account> [<project> [<ref>]]`` sticks
 
 from __future__ import annotations
 
+import io
 import sys
 from typing import Annotated
 
@@ -277,8 +278,25 @@ def _print_invalid_entries(exc: TagContentInvalid) -> None:
         )
 
 
+def _utf8_stdio() -> None:
+    """Write UTF-8 to stdout and stderr, whatever the locale says.
+
+    Python writes redirected output in the locale's encoding: cp1252 on most Windows
+    machines, Latin-1 under some POSIX locales. Neither holds rich's box drawing, and
+    `--output json` keeps names and content unescaped, so either would end in a
+    UnicodeEncodeError. UTF-8 is what `jq` and every other reader of JSON expects; anything
+    that still cannot be written becomes `?` rather than a traceback. A Windows console
+    window is UTF-8 already and is left alone.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        encoding = (getattr(stream, "encoding", None) or "").lower().replace("-", "")
+        if encoding != "utf8" and isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> None:
     """Console-script entry point: run the app, print errors without tracebacks."""
+    _utf8_stdio()
     try:
         app(standalone_mode=True)
     except Usage as exc:

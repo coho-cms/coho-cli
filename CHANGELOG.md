@@ -25,6 +25,10 @@ All notable changes to `coho-cli`. The format follows
 
 ### Fixed
 
+- Output redirected to a file or a pipe on Windows, or written under a non-UTF-8 locale
+  elsewhere, ended in `UnicodeEncodeError` for anything with box drawing or non-ASCII
+  text, `coho --help` included. `coho` now always writes UTF-8, and replaces with `?`
+  anything it still cannot write.
 - An `@slug` in a field a type inherits, or takes from a trait, is written as the id it
   names: `coho entry create -t photoGallery --set author=@tom-okafor` stored the text
   `@tom-okafor`, because the slug was looked up only in the fields the type declares itself.
