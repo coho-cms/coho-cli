@@ -1,4 +1,4 @@
-"""project: create, show, list, usage, register, forget."""
+"""project: create, rename, show, list, usage, register, forget."""
 
 from __future__ import annotations
 
@@ -38,6 +38,30 @@ def create(
             state,
             f"\nContext is now project [bold]{info.name}[/bold] on ref [bold]{info.trunk}[/bold].",
         )
+
+
+@app.command("rename")
+def rename(ctx: typer.Context, name: Annotated[str, typer.Argument(help="The new name.")]) -> None:
+    """Rename the current project (account admin).
+
+    Only its name changes: its id, its delivery URLs and its keys are untouched, so
+    nothing you have deployed or shared has to be updated. Pass `--project` to rename
+    one that is not the current project.
+    """
+    state = get_state(ctx)
+    acct = state.account()
+    proj = state.project()
+    was = proj.info().name
+    stored = proj.rename(name)
+    # The server frees the old name at once, so another project in the account may take
+    # it. A local alias left pointing here would then resolve to the wrong project.
+    if stored != was:
+        state.profile.forget_project(acct.id, was)
+    state.profile.remember_project(acct.id, stored, proj.id)
+    state.save()
+    record(state, {"id": proj.id, "name": stored}, [("id", proj.id), ("name", stored)])
+    if stored != was:
+        say(state, f"\nRenamed [bold]{was}[/bold] to [bold]{stored}[/bold].")
 
 
 @app.command("show")

@@ -8,6 +8,11 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho project rename NAME` (coho-data doc 39 §11.1): renames the current project, an
+  account admin's. Only the name changes — its id, delivery URLs, keys and tokens are
+  untouched — and an archived project can be renamed too. The local registry drops the old
+  name and records the new one, because the server frees the old name for another project
+  to take. Needs coho-management-sdk with `Project.rename`.
 - `coho tier move ID --ord N` (coho-data doc 11, M6-15): moves a tier in the pipeline, and
   the tiers it passes shift by one. Needs coho-management-sdk with `tiers.move`.
 - `coho trait list`, `get`, `put` and `delete` (coho-data doc 05 §10): traits, named groups
@@ -19,6 +24,10 @@ All notable changes to `coho-cli`. The format follows
 
 ### Changed
 
+- A project remembered under more than one name is now **named** by the newest of them,
+  where before it was the one remembered first. A project renamed anywhere — the console,
+  the SDK, another machine — was reported by `coho status` and `coho context show` under
+  its old name indefinitely.
 - `coho tier create --ord N` inserts: a position another tier holds moves that tier and the
   ones after it along, where it was refused with `TIER_ORDER_TAKEN`, and anything past the
   end is the end (coho-data doc 11, M6-15). `coho tier delete` closes the gap it leaves.

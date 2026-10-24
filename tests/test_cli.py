@@ -217,6 +217,22 @@ def test_project_create_sets_context_and_registry(run: Run, home: Path) -> None:
     assert "Marketing site" in out and PROJECT in out
 
 
+def test_project_rename_replaces_the_old_name_in_the_registry(run: Run, home: Path) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("project", "rename", "Brand site")
+    assert "Brand site" in out and PROJECT in out
+
+    cfg = Config.load(home / "config.toml").profile("test")
+    # The old name is gone, not merely outranked: the server has freed it, so another
+    # project may take it and a leftover alias would resolve to the wrong one.
+    assert cfg.projects[ACCOUNT] == {"Brand site": PROJECT}
+    # The context is an id, so renaming never moves it.
+    assert cfg.context.project == PROJECT
+
+    out, _ = run("status")
+    assert f"project  Brand site  ({PROJECT})" in out
+
+
 def test_entry_list_table_and_json(run: Run) -> None:
     run("use", "acme", PROJECT, "dev")
     out, _ = run("entry", "list", "--limit", "2")

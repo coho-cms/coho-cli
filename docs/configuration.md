@@ -94,6 +94,13 @@ coho project forget <name-or-id>           # local only
 Project names are accepted anywhere a project is expected, including `--project` and
 `COHO_PROJECT`: the registry answers first, then the server's list.
 
+A project may be remembered under more than one name — `project register` is there to
+give it yours — and all of them resolve. Where a project has to be *named* rather than
+found, as `coho status` names the current one, the **newest** name it was remembered
+under is used, so a project renamed elsewhere is not reported under what it used to be
+called. `coho project rename` goes further and drops the old name, because the server
+frees it for another project to take.
+
 ## Environment variables
 
 | Variable | Effect |
