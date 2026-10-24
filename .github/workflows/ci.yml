@@ -142,19 +142,99 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-  release:
-    name: attach to the GitHub release
-    if: startsWith(github.ref, 'refs/tags/v')
+  binaries:
+    # A standalone `coho` per platform, frozen with PyInstaller: its own Python and every
+    # dependency, for people who have no Python. Unsigned for now.
+    name: binary · ${{ matrix.target }}
     needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: macos-arm64
+          - os: windows-latest
+            target: windows-x64
+    defaults:
+      run:
+        shell: bash
     steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: packaging
+
+      # The wheel the build job made, so the binary is exactly what PyPI users install.
       - name: Download the distributions
         uses: actions/download-artifact@v8
         with:
           name: coho-cli-dist
           path: dist
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.13"
+
+      - name: Install the wheel and PyInstaller
+        run: |
+          uv venv .bin-venv
+          # The SDK comes from PyPI: release coho-management-sdk before a CLI that needs it.
+          uv pip install --python .bin-venv ./dist/*.whl "pyinstaller==6.22.3"
+
+      - name: Freeze
+        run: |
+          bin=.bin-venv/bin; [ "$RUNNER_OS" = Windows ] && bin=.bin-venv/Scripts
+          "$bin/python" -m PyInstaller --noconfirm --clean \
+            --distpath bin-dist --workpath bin-build packaging/pyinstaller/coho.spec
+
+      - name: Run it
+        run: |
+          exe=bin-dist/coho/coho; [ "$RUNNER_OS" = Windows ] && exe=bin-dist/coho/coho.exe
+          version=$(basename dist/*.whl | cut -d- -f2)
+          "$exe" --version | tee version.txt
+          grep -F "v$version" version.txt
+          "$exe" --help > /dev/null
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Archive
+        run: |
+          name="coho-$VERSION-${{ matrix.target }}"
+          if [ "$RUNNER_OS" = Windows ]; then
+            (cd bin-dist && 7z a -tzip "../$name.zip" coho > /dev/null)
+          else
+            tar -C bin-dist -czf "$name.tar.gz" coho
+          fi
+          ls -l coho-*
+
+      - name: Upload the binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: coho-binary-${{ matrix.target }}
+          path: |
+            coho-*.tar.gz
+            coho-*.zip
+          if-no-files-found: error
+          retention-days: 90
+
+  release:
+    name: attach to the GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download the distributions and the binaries
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coho-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
 
       - name: Create or update the release
         env:
@@ -167,9 +247,9 @@ jobs:
             prerelease="--prerelease"
           fi
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/*.whl dist/*.tar.gz --repo "$GITHUB_REPOSITORY" --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/*.whl dist/*.tar.gz \
+            gh release create "$GITHUB_REF_NAME" dist/* \
               --repo "$GITHUB_REPOSITORY" \
               --title "coho-cli $GITHUB_REF_NAME" \
               --generate-notes \
