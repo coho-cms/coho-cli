@@ -34,7 +34,10 @@ def coho(*args: str, encoding: str) -> subprocess.CompletedProcess[bytes]:
 def test_help_survives_a_non_utf8_stdout(home: Path, encoding: str) -> None:
     done = coho("--help", encoding=encoding)
     assert done.returncode == 0, done.stderr.decode("utf-8", "replace")
-    assert "╭" in done.stdout.decode("utf-8")
+    # Box drawing, in UTF-8: rounded corners, or square ones where rich takes the
+    # Windows console for a legacy one.
+    help_text = done.stdout.decode("utf-8")
+    assert "╭" in help_text or "┌" in help_text
 
 
 def test_a_secret_is_still_alone_on_stdout(home: Path) -> None:
@@ -42,5 +45,6 @@ def test_a_secret_is_still_alone_on_stdout(home: Path) -> None:
     done = coho("key", "create", "--label", "site", "--ref", "prod", encoding="cp1252")
     assert done.returncode == 0, done.stderr.decode("utf-8", "replace")
     # The secret's line is written byte for byte: nothing re-encoded, nothing replaced.
-    assert done.stdout.decode("utf-8").endswith("\ncoho_dk_SECRET\n")
+    # Windows ends lines with \r\n.
+    assert done.stdout.decode("utf-8").replace("\r\n", "\n").endswith("\ncoho_dk_SECRET\n")
     assert "shown once" in done.stderr.decode("utf-8")
