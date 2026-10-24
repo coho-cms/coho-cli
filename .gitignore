@@ -31,6 +31,8 @@ MANIFEST
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# Written by hand, not generated: the release binaries are built from it.
+!packaging/pyinstaller/coho.spec
 
 # Installer logs
 pip-log.txt
