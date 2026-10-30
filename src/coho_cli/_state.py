@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import cached_property
+from typing import Annotated
 from uuid import UUID
 
 import typer
@@ -22,6 +23,17 @@ EXIT_USAGE = 2
 EXIT_AUTH = 3
 EXIT_CONFLICT = 4
 EXIT_NOT_FOUND = 5
+
+# `--at` on the commands that read a ref: the ref as it was at that seq, the SEQ `coho entry
+# history` prints (coho-data doc 59 HI-4). The server says when a seq is out of range.
+At = Annotated[
+    int | None,
+    typer.Option(
+        "--at",
+        metavar="SEQ",
+        help="Read the ref as it was at this seq (see `coho entry history`).",
+    ),
+]
 
 
 class Usage(Exception):
@@ -174,12 +186,13 @@ class State:
         ids = ", ".join(p.id for p in matches)
         raise Usage(f"{len(matches)} projects are named '{raw}' ({ids}). Use the id.")
 
-    def ref(self) -> Ref:
+    def ref(self, *, at: int | None = None) -> Ref:
+        """The ref in context; with ``at``, read as it was at that seq, and never written."""
         project = self.project()
         name = self.context.ref
         if not name:
             raise Usage("no ref in context. Run `coho ref switch <ref>` or pass --ref.")
-        return project.ref(name)
+        return project.ref(name, at=at)
 
     def save(self) -> None:
         self.config.save()

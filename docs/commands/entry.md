@@ -32,10 +32,10 @@ ID        TYPE      SLUG         TITLE
 more: --offset 100, or --all
 ```
 
-## `coho entry get ID [--fields]`
+## `coho entry get ID [--fields] [--at SEQ]`
 
 The entry and its ETag. `--fields` prints only the fields object — for editing and
-feeding back to `put --file`.
+feeding back to `put --file`. `--at` prints it as it was at that seq (see below).
 
 ## `coho entry create -t TYPE [-s SLUG] [-f FIELDS] [--set PATH=VALUE …]`
 
@@ -77,13 +77,33 @@ Tombstones the entry — never a physical delete; the tombstone is a version wit
 ETag, which is printed. Shows how many entries still link to it and asks (`-y` skips).
 Without `--if-match`, deletes the version it reads now.
 
-## `coho entry history ID [--limit N] [--offset N]`
+## `coho entry history ID [--limit N] [--offset N] [--at SEQ]`
 
 Versions on this ref, by `seq` descending — commit order, not wall-clock. Tombstones
 included; a deleted entry still has a history. Per-ref: a feature branch shows the
 trunk's history up to the branch point, then its own.
 
-## `coho entry references ID`
+### Reading at an earlier point: `--at SEQ`
+
+Every command that reads the ref takes `--at`, and reads it as it was at that seq: the
+`SEQ` a history row prints. `entry list`, `get`, `history` and `references`, `type list`
+and `get`, `trait list` and `get`, and `asset list` and `get`. Read on the row's own
+`BRANCH`, so the version you get is the one the row names:
+
+```
+$ coho entry history @hello-world
+SEQ   OP      VERSION   BRANCH          ACTOR     AT
+1288  upsert  0192f1…   v1.2.x          0192aa…   2026-10-24T16:30:00Z
+1250  upsert  0192c4…   v1.2.x          0192aa…   2026-10-20T09:12:00Z
+$ coho --ref v1.2.x entry get @hello-world --at 1250
+$ coho --ref v1.2.x type get blogPost --at 1250      # the type as that version met it
+```
+
+On a tag, `--at` may go back but not past the tag. A seq below zero, beyond what the
+project has reached, or past the tag is refused with `AT_OUT_OF_RANGE`, which says how far
+the project has got. Writing commands do not take it.
+
+## `coho entry references ID [--at SEQ]`
 
 What links to this entry on this ref: linking node, kind, slug, field. Complete, never
 paginated — "can I delete this" needs the whole answer. Reports; never refuses.

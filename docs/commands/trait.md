@@ -5,11 +5,11 @@ card, that types take. A type names the traits it takes in its own `traits`; eve
 of it then has their fields. A trait is never a type: no entry is of one, and neither
 `--type` nor a reference's `of` can name one. See [content model](../content-model.md).
 
-## `coho trait list`
+## `coho trait list [--at SEQ]`
 
 Slug, display name, field ids, the types that take it, and version.
 
-## `coho trait get SLUG`
+## `coho trait get SLUG [--at SEQ]`
 
 The trait with its fields and **ETag**. `-o json` includes `etag`.
 

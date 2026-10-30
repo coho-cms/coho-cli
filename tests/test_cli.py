@@ -286,6 +286,51 @@ def test_entry_set_takes_a_repeater_as_a_json_list(run: Run, bff: FakeBff) -> No
     assert json.loads(out)["fields"]["citations"] == json.loads(items)
 
 
+def test_reads_at_a_seq_send_it_and_writes_do_not_take_it(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    reads = [
+        ("entry", "get", ENTRY),
+        ("entry", "history", ENTRY),
+        ("entry", "references", ENTRY),
+        ("entry", "list"),
+        ("type", "get", "blogPost"),
+        ("trait", "list"),
+        ("asset", "list"),
+    ]
+    for command in reads:
+        run(*command, "--at", "42")
+        # The server's own log: the fake records only what its handlers see.
+        sent = [r for r, _ in bff.server.log if "/refs/dev/" in r.path][-1]
+        assert sent.args.get("at") == "42", command
+    run("entry", "get", ENTRY)
+    assert "at" not in bff.server.log[-1][0].args
+    # A write is never about an earlier point, so it has no flag to say one.
+    _, err = run("entry", "put", ENTRY, "--set", "rank=1", "--at", "42", expect=2)
+    assert "--at" in err
+
+
+def test_a_seq_out_of_range_is_refused_with_how_far_the_project_has_got(
+    run: Run, bff: FakeBff
+) -> None:
+    run("use", "acme", PROJECT, "dev")
+    path = f"/api/v1/accounts/{ACCOUNT}/projects/{PROJECT}/refs/dev/entries/{ENTRY}"
+    bff.server.expect_oneshot_request(path, method="GET", query_string="at=999").respond_with_json(
+        {
+            "type": "https://coho.dev/problems/at-out-of-range",
+            "title": "Not a point this ref can be read at",
+            "status": 400,
+            "code": "AT_OUT_OF_RANGE",
+            "detail": "Cannot read at seq 999: the project has only reached 42",
+            "at": 999,
+            "highWaterMark": 42,
+        },
+        status=400,
+        content_type="application/problem+json",
+    )
+    _, err = run("entry", "get", ENTRY, "--at", "999", expect=1)
+    assert "AT_OUT_OF_RANGE" in err and "only reached 42" in err
+
+
 def test_type_list_says_which_types_are_components(run: Run, bff: FakeBff) -> None:
     run("use", "acme", PROJECT, "dev")
     path = f"/api/v1/accounts/{ACCOUNT}/projects/{PROJECT}/refs/dev/types"

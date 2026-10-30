@@ -2,11 +2,11 @@
 
 Content types as resolved on the current ref. See [content model](../content-model.md).
 
-## `coho type list`
+## `coho type list [--at SEQ]`
 
 Slug, display name, field ids, version.
 
-## `coho type get SLUG`
+## `coho type get SLUG [--at SEQ]`
 
 The type with its fields and **ETag**, the type it extends, the traits it takes, and
 whether it is abstract. `-o json` includes `etag`. The fields are the type's own, as it

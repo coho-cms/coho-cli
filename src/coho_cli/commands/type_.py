@@ -9,16 +9,16 @@ import typer
 from .._io import read_json
 from .._output import console, emit_json, record, say, table
 from .._slugs import type_slug
-from .._state import Usage, get_state
+from .._state import At, Usage, get_state
 
 app = typer.Typer(help="Content types, as resolved on the current ref.", no_args_is_help=True)
 
 
 @app.command("list")
-def list_(ctx: typer.Context) -> None:
+def list_(ctx: typer.Context, at: At = None) -> None:
     """Content and component types on the current ref."""
     state = get_state(ctx)
-    types = state.ref().types.list()
+    types = state.ref(at=at).types.list()
     table(
         state,
         {"types": [t.raw for t in types]},
@@ -31,10 +31,10 @@ def list_(ctx: typer.Context) -> None:
 
 
 @app.command("get")
-def get(ctx: typer.Context, slug: Annotated[str, typer.Argument()]) -> None:
+def get(ctx: typer.Context, slug: Annotated[str, typer.Argument()], at: At = None) -> None:
     """One content or component type, with its ETag."""
     state = get_state(ctx)
-    t = state.ref().types.get(slug)
+    t = state.ref(at=at).types.get(slug)
     if state.output == "json":
         emit_json(t.raw | {"etag": t.etag})
         return

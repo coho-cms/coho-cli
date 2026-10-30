@@ -34,11 +34,11 @@ bytes, not its name: anything but an image, PDF, audio or video is
 
 With `-o json`, one file prints its asset; several print `{"assets": […]}`.
 
-## `coho asset list [--limit N] [--offset N] [--all]`
+## `coho asset list [--limit N] [--offset N] [--all] [--at SEQ]`
 
 In slug order, with type, size and pixel dimensions.
 
-## `coho asset get ASSET`
+## `coho asset get ASSET [--at SEQ]`
 
 Everything about one asset, including its `url` and, for raster images, its
 `image url`, and the ETag `put` sends.

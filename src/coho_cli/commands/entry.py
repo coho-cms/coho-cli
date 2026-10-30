@@ -13,7 +13,7 @@ from .._entry_ids import reference_ids
 from .._io import parse_set, read_json, set_path
 from .._output import console, emit_json, record, say, table
 from .._slugs import content_slug
-from .._state import State, Usage, get_state
+from .._state import At, State, Usage, get_state
 
 app = typer.Typer(help="Entries on the current ref.", no_args_is_help=True)
 
@@ -32,10 +32,11 @@ def list_(
     limit: Annotated[int, typer.Option("--limit", help="1..1000 per page.")] = 100,
     offset: Annotated[int, typer.Option("--offset")] = 0,
     all_: Annotated[bool, typer.Option("--all", help="Follow pages until the end.")] = False,
+    at: At = None,
 ) -> None:
     """List entries (one page, or --all)."""
     state = get_state(ctx)
-    api = state.ref().entries
+    api = state.ref(at=at).entries
     if all_:
         entries = list(api.iterate(type=type_, page_size=limit))
         raw: Any = {"entries": [e.raw for e in entries], "total": len(entries)}
@@ -63,10 +64,11 @@ def get(
             "--fields", help="Print only the fields object (for editing and `put --file`)."
         ),
     ] = False,
+    at: At = None,
 ) -> None:
-    """One entry, with its ETag."""
+    """One entry, with its ETag. With --at, the entry as it was at that seq."""
     state = get_state(ctx)
-    ref = state.ref()
+    ref = state.ref(at=at)
     e = ref.entries.get(resolve_entry_id(ref, entry_id))
     if fields_only:
         emit_json(e.fields)
@@ -210,10 +212,11 @@ def history(
     entry_id: EntryId,
     limit: Annotated[int, typer.Option("--limit")] = 50,
     offset: Annotated[int, typer.Option("--offset")] = 0,
+    at: At = None,
 ) -> None:
     """Version history on this ref, newest first. Tombstones included."""
     state = get_state(ctx)
-    ref = state.ref()
+    ref = state.ref(at=at)
     h = ref.entries.history(resolve_entry_id(ref, entry_id), limit=limit, offset=offset)
     table(
         state,
@@ -224,10 +227,10 @@ def history(
 
 
 @app.command("references")
-def references(ctx: typer.Context, entry_id: EntryId) -> None:
+def references(ctx: typer.Context, entry_id: EntryId, at: At = None) -> None:
     """What links to this entry on this ref. Complete, never paginated."""
     state = get_state(ctx)
-    ref = state.ref()
+    ref = state.ref(at=at)
     r = ref.entries.references(resolve_entry_id(ref, entry_id))
     table(
         state,

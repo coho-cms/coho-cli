@@ -8,6 +8,12 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `--at SEQ` on the commands that read a ref (coho-data doc 59 HI-4): `entry list`, `get`,
+  `history` and `references`, `type list` and `get`, `trait list` and `get`, and `asset
+  list` and `get`. Each reads the ref as it was at that seq, the `SEQ` that `coho entry
+  history` prints, so an old version of an entry comes back with its type as it was. On a
+  tag it may go back but not past the tag; out of range is `AT_OUT_OF_RANGE`. Needs
+  coho-management-sdk with `project.ref(name, at=…)`, and a server with `at` on reads.
 - `coho project rename NAME` (coho-data doc 39 §11.1): renames the current project, an
   account admin's. Only the name changes — its id, delivery URLs, keys and tokens are
   untouched — and an archived project can be renamed too. The local registry drops the old

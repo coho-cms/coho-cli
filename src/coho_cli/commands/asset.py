@@ -13,7 +13,7 @@ from coho_management_sdk.models import Asset, FocalPoint
 
 from .._output import console, emit_json, record, say, table, warn
 from .._slugs import content_slug
-from .._state import State, Usage, get_state
+from .._state import At, State, Usage, get_state
 
 app = typer.Typer(
     help="Files on the current ref: images, PDF, audio and video. ⚠️ Public to anyone with the URL.",
@@ -97,10 +97,11 @@ def list_(
     limit: Annotated[int, typer.Option("--limit", help="1..1000 per page.")] = 100,
     offset: Annotated[int, typer.Option("--offset")] = 0,
     all_: Annotated[bool, typer.Option("--all", help="Follow pages until the end.")] = False,
+    at: At = None,
 ) -> None:
     """List assets in slug order (one page, or --all)."""
     state = get_state(ctx)
-    api = state.ref().assets
+    api = state.ref(at=at).assets
     if all_:
         assets = list(api.iterate(page_size=limit))
         raw: Any = {"assets": [a.raw for a in assets]}
@@ -127,10 +128,11 @@ def list_(
 def get(
     ctx: typer.Context,
     asset: Annotated[str, typer.Argument(help="An asset id or slug.")],
+    at: At = None,
 ) -> None:
     """One asset, with its URLs and ETag."""
     state = get_state(ctx)
-    a = _resolve(state, asset)
+    a = _resolve(state, asset, at=at)
     if state.output == "json":
         emit_json(_json(a))
         return
@@ -270,9 +272,9 @@ def delete(
 # -- helpers ---------------------------------------------------------------------
 
 
-def _resolve(state: State, asset: str) -> Asset:
-    """An asset by id, or by slug on the current ref."""
-    api = state.ref().assets
+def _resolve(state: State, asset: str, *, at: int | None = None) -> Asset:
+    """An asset by id, or by slug on the current ref (as it was at ``at``, if given)."""
+    api = state.ref(at=at).assets
     if _UUID.match(asset):
         return api.get(asset)
     for a in api.iterate(page_size=1000):

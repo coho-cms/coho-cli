@@ -52,6 +52,7 @@ whole problem document on stdout so a script can read the conflicts or the entri
 | `BRANCH_TOO_DEEP` | 400 | `depth`, `maxDepth` | |
 | `CANNOT_BRANCH_FROM` | 400 | `ref` | |
 | `INVALID_BRANCH_POINT`, `INVALID_TAG_POINT` | 400 | | `--at` out of range |
+| `AT_OUT_OF_RANGE` | 400 | `at`, `highWaterMark`; `ref` for a tag | a read's `--at` below zero, beyond the project's high-water mark, or past the tag |
 | `TAG_CONTENT_INVALID` | 400 | `entryCount`, `invalidEntries[]` | `tag create --validate` found invalid entries; nothing was tagged |
 | `MERGE_CONFLICT` | 400 | `conflicts[]` | needs resolutions |
 | `MERGE_RESOLUTION_REJECTED` | 400 | | a resolution does not apply |

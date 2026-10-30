@@ -9,7 +9,7 @@ import typer
 from .._io import read_json
 from .._output import console, emit_json, record, say, table
 from .._slugs import type_slug
-from .._state import Usage, get_state
+from .._state import At, Usage, get_state
 
 app = typer.Typer(
     help="Traits, as resolved on the current ref: groups of fields types take by `traits`.",
@@ -18,10 +18,10 @@ app = typer.Typer(
 
 
 @app.command("list")
-def list_(ctx: typer.Context) -> None:
+def list_(ctx: typer.Context, at: At = None) -> None:
     """Traits on the current ref, and the types that take each."""
     state = get_state(ctx)
-    ref = state.ref()
+    ref = state.ref(at=at)
     traits = ref.traits.list()
     types = ref.types.list()
     table(
@@ -42,10 +42,10 @@ def list_(ctx: typer.Context) -> None:
 
 
 @app.command("get")
-def get(ctx: typer.Context, slug: Annotated[str, typer.Argument()]) -> None:
+def get(ctx: typer.Context, slug: Annotated[str, typer.Argument()], at: At = None) -> None:
     """One trait, with its ETag and its fields."""
     state = get_state(ctx)
-    t = state.ref().traits.get(slug)
+    t = state.ref(at=at).traits.get(slug)
     if state.output == "json":
         emit_json(t.raw | {"etag": t.etag})
         return
