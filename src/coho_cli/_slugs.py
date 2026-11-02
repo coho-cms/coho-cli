@@ -2,7 +2,9 @@
 
 A type slug is camelCase (``Blog post`` -> ``blogPost``) because it appears in code:
 ``coho entry create -t blogPost`` and ``of: ["teamMember"]``. A content slug is
-kebab-case (``Hello, World!`` -> ``hello-world``) because it appears in URLs.
+kebab-case (``Hello, World!`` -> ``hello-world``) because it appears in URLs. A
+singleton type's one entry has its type's slug in kebab case (``siteSettings`` ->
+``site-settings``, coho-data doc 66).
 
 These rules mirror ``coho.model.Slugs`` on the server, which stays the authority: a
 generated slug that the server would refuse is refused here first, with a message
@@ -57,3 +59,11 @@ def content_slug(name: str) -> str:
     if not _CONTENT_SLUG.match(slug):  # pragma: no cover - the rule holds by construction
         raise Usage(f"cannot build a content slug from {name!r}. Pass --slug explicitly.")
     return slug
+
+
+def singleton_entry_slug(type_slug: str) -> str:
+    """The slug a singleton type's entry answers to: the type's slug in kebab case, each
+    capital starting a word and a run of capitals kept as one (``kbArticle`` ->
+    ``kb-article``, ``faqURL`` -> ``faq-url``). The server's ``Slugs.kebabOf``."""
+    slug = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", type_slug)
+    return re.sub(r"([A-Z])([A-Z][a-z])", r"\1-\2", slug).lower()

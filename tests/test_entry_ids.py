@@ -371,3 +371,40 @@ def test_an_asset_slug_nothing_has_is_not_found_and_nothing_is_written(
     _, err = run("entry", "put", ENTRY, "--set", "image=@bridge", expect=5)
     assert "no asset with slug 'bridge' on dev" in words(err)
     assert not any(r.method == "PUT" for r, _ in bff.server.log)
+
+
+# -- a singleton type's slug names its one entry (coho-data doc 66) ----------------------
+
+SETTINGS: dict[str, Any] = HELLO | {"slug": "site-settings", "type": "siteSettings"}
+
+
+def test_a_singleton_types_slug_reads_its_entry_by_the_fixed_slug(run: Run, bff: FakeBff) -> None:
+    seen = by_slug(bff, "dev", "site-settings", graph(SETTINGS))
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("-o", "json", "entry", "get", "siteSettings")
+    assert json.loads(out)["id"] == ENTRY
+    assert len(seen) == 1
+
+
+def test_a_singleton_with_no_entry_yet_says_how_to_make_it(run: Run, bff: FakeBff) -> None:
+    by_slug(bff, "dev", "site-settings", problem(404, "ENTRY_NOT_FOUND", "No entry"))
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("entry", "get", "siteSettings", expect=5)
+    assert "siteSettings has no entry on dev yet" in words(err)
+    assert "coho entry create -t siteSettings" in words(err)
+
+
+def test_a_type_of_many_entries_names_none(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("entry", "get", "blogPost", expect=2)
+    assert "not a singleton" in words(err) and "coho entry list -t blogPost" in words(err)
+    assert slug_reads(bff) == []
+
+
+def test_a_word_that_is_no_type_is_refused_as_an_id(run: Run, bff: FakeBff) -> None:
+    bff.server.expect_request(
+        f"/api/v1/accounts/{ACCOUNT}/projects/{PROJECT}/refs/dev/types/nope", method="GET"
+    ).respond_with_response(problem(404, "NOT_FOUND", "Type 'nope' not found"))
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("entry", "get", "nope", expect=2)
+    assert "dev has no type with that slug" in words(err)

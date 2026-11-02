@@ -8,6 +8,18 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho pin list`, `add`, `remove` and `order` (coho-data doc 67): your pinned entries in
+  the current project, the ones the console keeps at hand, for parity with it. A pin is
+  yours alone and the project's, not a ref's, so `pin list` shows each as it reads on the
+  current ref: live, deleted here, or not on this ref. Any role may pin, at most 20
+  (`PIN_LIMIT`); `pin order` names every pin once, top first. Needs coho-management-sdk
+  with `project.pins`.
+- Singleton types (coho-data doc 66). `coho entry create -t siteSettings` with no `--slug`
+  leaves the slug to the server, which gives a singleton's entry its fixed slug,
+  `site-settings`, where any other type's slug is still built from `_name`. Wherever a
+  command takes an entry `ID`, a singleton type's slug names its one entry: `coho entry
+  get siteSettings`. A type of many entries is refused as an id. Needs
+  coho-management-sdk with `entries.create(slug=None)`.
 - `--at SEQ` on the commands that read a ref (coho-data doc 59 HI-4): `entry list`, `get`,
   `history` and `references`, `type list` and `get`, `trait list` and `get`, and `asset
   list` and `get`. Each reads the ref as it was at that seq, the `SEQ` that `coho entry

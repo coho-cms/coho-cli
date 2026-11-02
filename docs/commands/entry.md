@@ -11,6 +11,12 @@ one thing at most; one that names a type or an asset is refused. Lookups work on
 branch, or an environment on one; on a tag, and for a deleted entry, use the id. Ids
 are UUIDs, so none starts with `@`.
 
+A singleton type's slug names its one entry: `coho entry get siteSettings` reads the
+entry of `siteSettings`, a type marked singleton (coho-data doc 66), by its fixed slug,
+`@site-settings`. The type is read first, and one with any number of entries is refused,
+pointing at `coho entry list -t TYPE`. Before the entry is first written, the lookup is
+`ENTRY_NOT_FOUND` with the `entry create` that makes it.
+
 A reference field's `--set` value takes `@SLUG` too, on `entry create` and `entry put`:
 `--set author=@priya-shah --set 'tags=["@traffic","@drainage"]'`. Each is looked up on
 the same ref and written as the id it names; the server then checks the ids as it checks
@@ -41,6 +47,10 @@ feeding back to `put --file`. `--at` prints it as it was at that seq (see below)
 
 `POST …/entries`. With no `-s`, the slug is built from `_name` in kebab-case: `Hello, World!`
 becomes `hello-world`. An entry with no `_name` and no `-s` is refused before anything is sent.
+For a singleton type the type is read first, and with no `-s` the server gives the entry its
+fixed slug, the type's slug in kebab case: `-t siteSettings` makes `site-settings`. Any other
+`-s` is refused (`VALIDATION_FAILED` at `/_slug`), and so is a second entry (`SLUG_CONFLICT`,
+naming the first).
 
 Fields come from `--file` (path, `-`, or inline JSON — either the
 fields object or a document with a `fields` key) and/or `--set`.

@@ -15,6 +15,10 @@ What that read can and cannot answer:
 - Live reads serve a branch, or an environment on one. A tag is refused as a ref that
   does not exist, so on a tag the id is the only way in.
 
+A singleton type's slug, ``siteSettings``, names that type's one entry, which is looked
+up by its fixed slug, ``@site-settings`` (coho-data doc 66). A type of many entries names
+none, and is refused as an id.
+
 Entry ids are UUIDs, so no id starts with ``@`` and the prefix cannot shadow one. A UUID
 is a well-formed slug too, so ``@<uuid>`` is looked up as a slug like any other.
 
@@ -37,16 +41,22 @@ from coho_management_sdk import NotFound, Ref
 from coho_management_sdk.errors import RefNotFound
 from coho_management_sdk.transport import segment
 
+from ._slugs import singleton_entry_slug
 from ._state import Usage
 
 # A content slug, as `_slugs.content_slug` makes them and the server checks them.
 _CONTENT_SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+# A type slug. No entry id is one: an id is a UUID, with hyphens.
+_TYPE_SLUG = re.compile(r"^[a-z][a-zA-Z0-9]*$")
 
 
 def entry_id(ref: Ref, raw: str) -> str:
-    """The entry id ``raw`` names on ``ref``: itself, or for ``@<slug>`` the id of the
-    entry with that slug. Pass the ``Ref`` the command then acts on, so the slug is
-    looked up where the id will be used."""
+    """The entry id ``raw`` names on ``ref``: itself; for ``@<slug>``, the id of the
+    entry with that slug; and for a singleton type's slug, the id of its one entry. Pass
+    the ``Ref`` the command then acts on, so the slug is looked up where the id will be
+    used."""
+    if _TYPE_SLUG.match(raw) and not _is_uuid(raw):
+        return _singleton_entry(ref, raw)
     if not raw.startswith("@"):
         return raw
     slug = raw[1:]
@@ -95,6 +105,35 @@ def entry_id(ref: Ref, raw: str) -> str:
             "Slugs are unique across all three."
         )
     return str(roots[0])
+
+
+def _singleton_entry(ref: Ref, type_slug: str) -> str:
+    """The id of a singleton type's one entry, read by its fixed slug (coho-data doc 66)."""
+    try:
+        type_ = ref.types.get(type_slug)
+    except NotFound:
+        raise Usage(
+            f"{type_slug!r} is not an entry id, and {ref.name} has no type with that slug. "
+            "Pass an entry id, @slug, or a singleton type's slug."
+        ) from None
+    if not type_.singleton:
+        raise Usage(
+            f"'{type_slug}' is a type with any number of entries, not a singleton, so it "
+            f"names no one entry. Pass an entry id or @slug: `coho entry list -t {type_slug}` "
+            "shows them."
+        )
+    slug = singleton_entry_slug(type_slug)
+    try:
+        return entry_id(ref, f"@{slug}")
+    except NotFound as exc:
+        if exc.code != "ENTRY_NOT_FOUND":
+            raise
+        raise NotFound(
+            f"{type_slug} has no entry on {ref.name} yet: its one entry will be '{slug}'. "
+            f"`coho entry create -t {type_slug}` makes it.",
+            code="ENTRY_NOT_FOUND",
+            status=404,
+        ) from None
 
 
 def reference_ids(

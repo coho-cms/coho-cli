@@ -19,7 +19,11 @@ app = typer.Typer(help="Entries on the current ref.", no_args_is_help=True)
 
 # Every command that takes an entry id takes `@<slug>` too (see `_entry_ids`).
 EntryId = Annotated[
-    str, typer.Argument(metavar="ID", help="An entry id, or @slug for the entry with that slug.")
+    str,
+    typer.Argument(
+        metavar="ID",
+        help="An entry id, @slug for the entry with that slug, or a singleton type's slug.",
+    ),
 ]
 
 
@@ -100,7 +104,10 @@ def create(
         typer.Option(
             "--slug",
             "-s",
-            help="The entry's slug, stamped as `_slug`. Omit it to build one from `_name`.",
+            help=(
+                "The entry's slug, stamped as `_slug`. Omit it to build one from `_name`, "
+                "or for a singleton type to take its fixed slug."
+            ),
         ),
     ] = None,
     file: Annotated[
@@ -117,12 +124,15 @@ def create(
     """Create an entry from a fields document and/or --set values.
 
     With no --slug, the slug is built from `_name` in kebab-case ("Hello, World!" ->
-    hello-world). The slug is fixed once created; renaming `_name` does not change it.
+    hello-world), or, for a singleton type, is the type's slug in kebab case
+    (siteSettings -> site-settings), the one slug its entry may have. The slug is fixed
+    once created; renaming `_name` does not change it.
     """
     state = get_state(ctx)
     ref = state.ref()
     fields = _fields(file, reference_ids(ref, lambda: type_, _parse_sets(set_)))
-    if slug is None:
+    # A singleton's entry is given its fixed slug by the server (coho-data doc 66).
+    if slug is None and not ref.types.get(type_).singleton:
         name = fields.get("_name")
         if not isinstance(name, str) or not name.strip():
             raise Usage("no --slug given and the entry has no _name to build one from")

@@ -47,6 +47,8 @@ whole problem document on stdout so a script can read the conflicts or the entri
 | `SLUG_CONFLICT` | 400 | `slug`, `ref` | |
 | `INTERNAL_NAME_CONFLICT` | 400 | `ref` | |
 | `TYPE_IN_USE` | 400 | `slug`, `entryCount` | delete refused |
+| `SINGLETON_BLOCKED` | 400 | | a type made a singleton while its ref holds more than one of its entries, a type that extends it, or its entry under another slug |
+| `PIN_LIMIT` | 400 | | `pin add` past 20 pins in the project; unpin one first |
 | `BRANCH_NOT_WRITABLE` | 400 | `ref` | writing to a tag or environment |
 | `REF_NAME_TAKEN` | 400 | `ref` | |
 | `BRANCH_TOO_DEEP` | 400 | `depth`, `maxDepth` | |

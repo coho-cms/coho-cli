@@ -25,6 +25,7 @@ Global options: `-p/--profile`, `-o/--output table|json`, `--url`, `--account`,
 | [trait](trait.md) | `trait list/get/put/delete` |
 | [type](type.md) | `type list/get/put/delete` |
 | [entry](entry.md) | `entry list/get/create/put/delete/history/references` |
+| [pin](pin.md) | `pin list/add/remove/order` — your pinned entries in the project |
 | [asset](asset.md) | `asset upload/list/get/url/put/delete` — images and other files; public by URL |
 | [diff](diff.md) | `diff` |
 | [merge](merge.md) | `merge` |

@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 
 import pytest
-from coho_management_sdk.testing import PROJECT
+from coho_management_sdk.testing import PROJECT, FakeBff
 
-from coho_cli._slugs import content_slug, type_slug
+from coho_cli._slugs import content_slug, singleton_entry_slug, type_slug
 from coho_cli._state import Usage
 from conftest import Run
 
@@ -125,3 +125,29 @@ def test_type_put_with_no_name_and_no_slug_is_a_usage_error(run: Run) -> None:
     run("use", "acme", PROJECT, "dev")
     _, err = run("type", "put", "-f", '{"fields": []}', expect=2)
     assert "_name" in err
+
+
+@pytest.mark.parametrize(
+    ("type_slug", "slug"),
+    [
+        ("siteSettings", "site-settings"),
+        ("kbArticle", "kb-article"),
+        ("footer", "footer"),
+        ("faqURL", "faq-url"),
+        ("homePage2", "home-page2"),
+        ("pageV2Header", "page-v2-header"),
+    ],
+)
+def test_a_singletons_entry_slug_is_its_type_slug_in_kebab_case(type_slug: str, slug: str) -> None:
+    # The server's Slugs.kebabOf, which the API holds the entry to (coho-data doc 66, SG-6).
+    assert singleton_entry_slug(type_slug) == slug
+
+
+def test_entry_create_for_a_singleton_leaves_the_slug_to_the_server(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run(
+        "-o", "json", "entry", "create", "-t", "siteSettings", "-f", '{"_name": "Settings"}'
+    )
+    assert json.loads(out)["slug"] == "site-settings"
+    # Not built from `_name`, which would be `settings`: the server gives the fixed one.
+    assert "slug" not in bff.last().get_json()

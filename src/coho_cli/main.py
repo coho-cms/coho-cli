@@ -46,6 +46,7 @@ from .commands import (
     invite,
     key,
     member,
+    pin,
     preview,
     project,
     ref,
@@ -176,6 +177,7 @@ app.add_typer(tag.app, name="tag")
 app.add_typer(type_.app, name="type")
 app.add_typer(trait.app, name="trait")
 app.add_typer(entry.app, name="entry")
+app.add_typer(pin.app, name="pin")
 app.add_typer(asset.app, name="asset")
 app.add_typer(env.app, name="env")
 app.add_typer(tier.app, name="tier")
