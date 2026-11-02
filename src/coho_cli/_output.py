@@ -9,6 +9,7 @@ from typing import Any
 
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 from ._state import State
 
@@ -30,8 +31,13 @@ def table(
     *,
     title: str | None = None,
     empty: str = "(none)",
+    whole: Sequence[str] = (),
 ) -> None:
-    """Print ``rows`` as a table, or ``raw`` as JSON when ``--output json``."""
+    """Print ``rows`` as a table, or ``raw`` as JSON when ``--output json``.
+
+    The columns named in ``whole`` are never cut short, so an id the next command takes can
+    be copied from a narrow terminal; the others give way instead.
+    """
     if state.output == "json":
         emit_json(raw)
         return
@@ -40,10 +46,15 @@ def table(
         console.print(f"[dim]{empty}[/dim]")
         return
     t = Table(title=title, show_lines=False, header_style="bold", box=None, pad_edge=False)
-    for c in columns:
-        t.add_column(c)
-    for r in rows:
-        t.add_row(*[_cell(v) for v in r])
+    cells = [[_cell(v) for v in r] for r in rows]
+    for i, c in enumerate(columns):
+        if c in whole:
+            widest = max([len(c)] + [Text.from_markup(r[i]).cell_len for r in cells])
+            t.add_column(c, no_wrap=True, min_width=widest)
+        else:
+            t.add_column(c)
+    for row in cells:
+        t.add_row(*row)
     console.print(t)
 
 

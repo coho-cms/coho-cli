@@ -8,6 +8,17 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho webhook` (coho-data doc 70): `list`, `events`, `create`, `show`, `update`,
+  `delete`, `rotate`, `test`, `deliveries`, `delivery`, and `redeliver`, the endpoints Coho
+  calls when something happens in the project, for parity with the portal's Webhooks page.
+  `create` and `rotate` print the signing secret once, and `rotate` says when the previous
+  one stops signing; `update --header` replaces every custom header, since their values
+  cannot be read back. `deliveries` reads the log, filtered by state, event type, and
+  time; `delivery` shows each attempt's status, failure, time taken, and response; and
+  `redeliver` sends one delivery again, or every one that failed since `--failed-since`.
+  Owners only, at most 25. A webhook's or a delivery's id is never cut short in a table, so
+  it can be copied from a narrow terminal into the next command. Needs coho-management-sdk
+  with `project.webhooks`.
 - `coho pin list`, `add`, `remove` and `order` (coho-data doc 67): your pinned entries in
   the current project, the ones the console keeps at hand, for parity with it. A pin is
   yours alone and the project's, not a ref's, so `pin list` shows each as it reads on the

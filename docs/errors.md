@@ -71,6 +71,14 @@ whole problem document on stdout so a script can read the conflicts or the entri
 | `ASSET_UPLOAD_INCOMPLETE` | 400 | | completed before the bytes arrived, or other bytes |
 | `ASSET_UPLOAD_EXPIRED` | 400 | | not completed within the hour |
 | `ASSETS_UNAVAILABLE` | 503 | | the deployment has no asset store |
+| `WEBHOOK_URL_INVALID` | 400 | | a webhook's URL is not HTTPS, or has a user name or password in it |
+| `WEBHOOK_URL_REFUSED` | 400 | | a webhook's URL is, or resolves to, a private, loopback, or link-local address; the detail names it |
+| `WEBHOOK_EVENT_UNKNOWN` | 400 | | not an event a webhook can subscribe to; `coho webhook events` lists them |
+| `WEBHOOK_HEADER_RESERVED` | 400 | | a custom header Coho sets itself, such as `content-type` or one starting `webhook-` |
+| `WEBHOOK_LIMIT_REACHED` | 400 | | the project has 25 webhooks; delete one first |
+| `WEBHOOK_INVALID` | 400 | | anything else about a webhook the server will not keep, or a test sent to a disabled one; the detail says which |
+| `WEBHOOKS_UNCONFIGURED` | 503 | | the deployment has no key to seal webhook secrets with, so it keeps no webhooks |
+| `PROJECT_ARCHIVED` | 400 | | a change to an archived project; reading, such as a webhook's log, still works |
 | `UPLOAD_REJECTED` | — | `storageCode` | object storage refused the bytes on its presigned URL; not from the API |
 | `UPSTREAM_UNAVAILABLE` | 502 | | the BFF could not reach a tier |
 | `INTERNAL` | 500 | | opaque by design |

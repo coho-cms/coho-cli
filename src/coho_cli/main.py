@@ -57,6 +57,7 @@ from .commands import (
     trait,
     type_,
     user,
+    webhook,
 )
 
 err = Console(stderr=True)
@@ -183,6 +184,7 @@ app.add_typer(env.app, name="env")
 app.add_typer(tier.app, name="tier")
 app.add_typer(key.app, name="key")
 app.add_typer(token.app, name="token")
+app.add_typer(webhook.app, name="webhook")
 app.add_typer(preview.app, name="preview")
 
 
