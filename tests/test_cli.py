@@ -17,6 +17,7 @@ from coho_management_sdk.testing import (
 )
 
 from coho_cli import __version__
+from coho_cli._defaults import PRODUCTION_OIDC_DOMAIN, PRODUCTION_URL
 from conftest import Run
 
 
@@ -587,6 +588,52 @@ def test_configure_creates_profile(run: Run, home: Path) -> None:
     )
     out, _ = run("profile", "list")
     assert "staging" in out and "pkce" in out
+
+
+def test_configure_with_no_flags_points_at_production(run: Run, home: Path) -> None:
+    out, _ = run("-p", "new", "configure")
+    cfg = Config.load(home / "config.toml")
+    p = cfg.profile("new")
+    assert p.url == PRODUCTION_URL
+    assert p.oidc_domain == PRODUCTION_OIDC_DOMAIN
+    assert p.client_id == "coho-cli"
+    assert PRODUCTION_URL in out
+
+
+def test_configure_does_not_repoint_an_existing_profile(run: Run, home: Path) -> None:
+    """The profile `home` created points at the fake BFF; `configure` must leave it there."""
+    before = Config.load(home / "config.toml").profile("test").url
+    run("-p", "test", "configure", "--token-store", "file")
+    after = Config.load(home / "config.toml").profile("test")
+    assert after.url == before != PRODUCTION_URL
+    assert after.oidc_domain is None  # not filled in behind the person's back
+    assert after.token_store == "file"
+
+
+def test_a_machine_with_no_config_resolves_default_to_production(
+    run: Run, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fresh install: `coho login` must reach production, not an error naming a URL."""
+    monkeypatch.setenv("COHO_CONFIG_DIR", str(tmp_path / "empty"))
+    monkeypatch.delenv("COHO_PROFILE", raising=False)
+    out, _ = run("profile", "show")
+    assert PRODUCTION_URL in out and PRODUCTION_OIDC_DOMAIN in out
+    # Resolving it writes nothing: a profile exists once something asks to save one.
+    assert not (tmp_path / "empty" / "config.toml").exists()
+
+
+def test_a_profile_asked_for_by_name_is_still_an_error_when_missing(
+    run: Run, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("COHO_CONFIG_DIR", str(tmp_path / "empty"))
+    _, err = run("-p", "pord", "profile", "show", expect=2)
+    assert "no profile named 'pord'" in err
+
+
+def test_profile_show_of_a_missing_name_is_an_error_not_a_traceback(run: Run, home: Path) -> None:
+    _, err = run("profile", "show", "nope", expect=2)
+    assert "no profile named 'nope'" in err
+    assert "Traceback" not in err
 
 
 def test_configure_takes_profile_after_its_name_as_its_help_says(run: Run, home: Path) -> None:

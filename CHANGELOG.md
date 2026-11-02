@@ -6,6 +6,22 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- A new profile points at Coho's production service: `url = https://api.coho-cms.com`,
+  `oidc_domain = https://auth.coho-cms.com`, `client_id = coho-cli`. `coho configure`
+  with no flags is a working production profile, and on a machine with no config file the
+  first command resolves `default` to the same thing without writing one, so a fresh
+  install is `coho login` and nothing before it. `--url` and `--oidc-domain` still win,
+  and an existing profile is never rewritten, so one pointed at dev stays pointed at dev.
+  A profile that was *asked* for and is missing is still an error: `-p prod` on a fresh
+  machine says to create `prod` rather than inventing it.
+
+### Fixed
+
+- `coho profile show` printed a traceback instead of an error when the profile did not
+  exist.
+
 ### Added
 
 - `coho webhook` (coho-data doc 70): `list`, `events`, `create`, `show`, `update`,

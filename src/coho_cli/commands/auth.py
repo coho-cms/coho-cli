@@ -12,6 +12,7 @@ from coho_management_sdk.client import PROJECT_TOKEN_PREFIX
 from coho_management_sdk.errors import NotLoggedIn, Unauthenticated
 from coho_management_sdk.profiles import DEFAULT_SCOPES, Profile
 
+from .._defaults import PRODUCTION_OIDC_DOMAIN, PRODUCTION_URL, point_at_production
 from .._output import console, record, say, table, warn
 from .._state import State, Usage, get_state
 
@@ -241,12 +242,15 @@ def configure(
             "which goes before the command name.",
         ),
     ] = None,
-    url: Annotated[str | None, typer.Option("--url", help="The BFF base URL.")] = None,
+    url: Annotated[
+        str | None,
+        typer.Option("--url", help=f"The BFF base URL. New profiles: {PRODUCTION_URL}"),
+    ] = None,
     oidc_domain: Annotated[
         str | None,
         typer.Option(
             "--oidc-domain",
-            help="Coho's sign-in service, e.g. https://auth-dev.coho-cms.dev",
+            help=f"Coho's sign-in service. New profiles: {PRODUCTION_OIDC_DOMAIN}",
         ),
     ] = None,
     client_id: Annotated[
@@ -275,7 +279,12 @@ def configure(
     state = get_state(ctx)
     if profile_name:
         state.profile_name = profile_name
+    existing = set(state.config.profiles)
     profile = state.config.profile(state.profile_name, create=True)
+    # A profile being created points at production; one that already exists is only ever
+    # changed by the flags below, so a profile aimed at dev stays aimed at dev.
+    if profile.name not in existing:
+        point_at_production(profile)
     if url:
         profile.url = url.rstrip("/")
     if oidc_domain:
@@ -326,7 +335,10 @@ def profile_list(ctx: typer.Context) -> None:
             )
             for n, p in cfg.profiles.items()
         ],
-        empty=f"(no profiles; create one with `coho configure --url …`) — {cfg.path}",
+        empty=(
+            f"(no profiles saved; `default` points at {PRODUCTION_URL}. "
+            f"`coho configure` writes one) — {cfg.path}"
+        ),
     )
 
 
@@ -334,7 +346,14 @@ def profile_list(ctx: typer.Context) -> None:
 def profile_show(ctx: typer.Context, name: Annotated[str | None, typer.Argument()] = None) -> None:
     """One profile's settings."""
     state = get_state(ctx)
-    profile = state.config.profile(name or state.profile_name)
+    if name:
+        if name not in state.config.profiles:
+            raise Usage(f"no profile named '{name}'")
+        profile = state.config.profiles[name]
+    else:
+        # Through `state.profile`, which resolves the current profile and, on a machine
+        # with no config at all, answers with the production default.
+        profile = state.profile
     _show_profile(state, profile)
 
 

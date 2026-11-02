@@ -8,6 +8,7 @@ names the flag and the ``use`` command, not a stack trace.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Annotated
@@ -16,7 +17,9 @@ from uuid import UUID
 import typer
 from coho_management_sdk import Account, Coho, Config, Profile, Project, Ref
 from coho_management_sdk.models import Membership
-from coho_management_sdk.profiles import Context
+from coho_management_sdk.profiles import ENV_PROFILE, Context
+
+from ._defaults import point_at_production
 
 EXIT_ERROR = 1
 EXIT_USAGE = 2
@@ -71,9 +74,23 @@ class State:
             return self.config.profile(self.profile_name)
         except KeyError as exc:
             name = exc.args[0]
+            if self._fresh_install():
+                return point_at_production(self.config.profile(name, create=True))
             raise Usage(
                 f"no profile named '{name}'. Create it: coho configure --profile {name} --url https://…"
             ) from exc
+
+    def _fresh_install(self) -> bool:
+        """No profile saved and none asked for: the implicit `default` then points at
+        production rather than stopping a new person at an error naming a URL they have
+        no way to know. Registered in the config but not written — `configure` and `use`
+        save it if the session gets that far.
+
+        A name that was *asked* for and is missing stays an error, on a fresh machine as
+        anywhere else: `-p prod` wanting production is a guess, and `-p pord` a typo.
+        """
+        asked = self.profile_name or os.environ.get(ENV_PROFILE) or self.config.current_profile
+        return not asked and not self.config.profiles
 
     @property
     def context(self) -> Context:

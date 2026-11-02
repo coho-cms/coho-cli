@@ -37,8 +37,8 @@ Tokens are **not** in this file. See [authentication](authentication.md).
 A profile is a named environment: one BFF and one way to get a token for it.
 
 ```
-coho configure --profile staging --url https://staging.coho.example \
-    --oidc-domain … --client-id … [--scopes "…"] [--callback-port 8765] [--token-store file]
+coho configure [--profile staging] [--url https://staging.coho.example] \
+    [--oidc-domain …] [--client-id …] [--scopes "…"] [--callback-port 8765] [--token-store file]
 coho profile list
 coho profile show [NAME]
 coho profile use NAME
@@ -48,6 +48,19 @@ COHO_PROFILE=NAME coho <command>
 ```
 
 The first profile you configure becomes the current one; `--no-use` prevents that.
+
+### What a new profile points at
+
+A profile being created gets Coho's production service: `url =
+"https://api.coho-cms.com"`, `oidc_domain = "https://auth.coho-cms.com"`, `client_id =
+"coho-cli"`. `coho configure` with no flags is a working production profile, and on a
+machine with no config file at all the first command resolves `default` to the same
+thing without writing anything — so `coho login` works on a fresh install.
+
+`--url` and `--oidc-domain` override them, and a profile that already exists is never
+rewritten by them: one pointed at dev stays pointed at dev. Asking for a profile that
+does not exist is still an error, so `-p prod` on a fresh machine tells you to create
+`prod` rather than quietly inventing it.
 
 ## Context
 

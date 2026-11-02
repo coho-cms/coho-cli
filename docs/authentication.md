@@ -50,12 +50,25 @@ Cognito's hosted UI used before it was removed. Its client there, `coho-cli`, is
 
 The tokens are still Cognito's, issued to the sign-in service's own Cognito client.
 
-Point a profile at it:
+A profile needs no flags to find it. `coho configure`, and the first command on a
+machine with no config file, point at Coho's production service:
+
+| Setting | Default |
+|---|---|
+| `url` | `https://api.coho-cms.com` |
+| `oidc_domain` | `https://auth.coho-cms.com` |
+| `client_id` | `coho-cli` |
+
+So a new install is `coho login`, nothing before it. Name another environment to reach
+one:
 
 ```bash
 coho configure --profile dev --url https://api-dev.coho-cms.dev \
-    --oidc-domain https://auth-dev.coho-cms.dev --client-id coho-cli
+    --oidc-domain https://auth-dev.coho-cms.dev
 ```
+
+The defaults only ever fill in a profile being created. A profile that already exists
+keeps what it has, so one pointed at dev stays pointed at dev.
 
 `coho login --token` still works for a token obtained elsewhere. It has no refresh
 token, so it lasts only as long as the access token does.

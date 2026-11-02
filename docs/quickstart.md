@@ -3,19 +3,27 @@
 Ten minutes from nothing to a promoted release. Every command here has a page in the
 [command reference](commands/index.md).
 
-## 1. Point at your BFF and sign in
+## 1. Sign in
 
 ```bash
-coho configure --profile staging --url https://staging.coho.example \
-    --oidc-domain https://auth-staging.coho.example --client-id coho-cli
 coho login
 ```
 
-`login` opens Coho's sign-in pages in your browser and stores the tokens in your OS
-keyring. The domain is the sign-in service's address, `auth-<env>.<domain>`; the
-client id is always `coho-cli`. For a token obtained elsewhere, `coho login --token "$TOKEN"`
-stores it instead. See
-[authentication](authentication.md).
+That is the whole of it on a new machine: with no config file, `coho` points at Coho's
+production service (`https://api.coho-cms.com`). `login` opens Coho's sign-in pages in
+your browser and stores the tokens in your OS keyring. For a token obtained elsewhere,
+`coho login --token "$TOKEN"` stores it instead.
+
+Reaching somewhere else — your own BFF, or an environment Coho runs for you — is one
+command first:
+
+```bash
+coho configure --profile staging --url https://staging.coho.example \
+    --oidc-domain https://auth-staging.coho.example
+coho login
+```
+
+See [authentication](authentication.md) and [configuration](configuration.md).
 
 ```bash
 coho whoami
