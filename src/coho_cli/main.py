@@ -302,7 +302,10 @@ def main() -> None:
     """Console-script entry point: run the app, print errors without tracebacks."""
     _utf8_stdio()
     try:
-        app(standalone_mode=True)
+        # Click expands * and ? against the working folder on Windows, as a shell would on
+        # macOS and Linux. Here they are Coho's wildcards (--event 'tag.*', --ref 'v1.*'),
+        # and quoting them in PowerShell or cmd does not stop Click, so it never expands.
+        app(standalone_mode=True, windows_expand_args=False)
     except Usage as exc:
         err.print(f"[red]error[/red]: {exc.message}", highlight=False)
         sys.exit(exc.exit_code)
