@@ -7,7 +7,8 @@ from typing import Annotated
 import typer
 from coho_management_sdk.models import ACCOUNT_ROLES
 
-from .._output import console, record, say, secret_once, table
+from .._browser import no_browser_reason, open_or_print
+from .._output import record, say, secret_once, table
 from .._state import Usage, get_state
 
 app = typer.Typer(help="Invitations into an account.", no_args_is_help=True)
@@ -120,15 +121,16 @@ def accept(
     no_browser: Annotated[bool, typer.Option("--no-browser")] = False,
 ) -> None:
     """Accept an invitation. Finishes in the browser; then run `coho login`."""
-    import webbrowser
-
     state = get_state(ctx)
     url = state.coho.invitation_accept_start(_strip_fragment(token), display_name=display_name)
-    if no_browser:
-        console.print(url, markup=False, highlight=False, soft_wrap=True)
-    else:
-        webbrowser.open(url)
+    if open_or_print(
+        url,
+        print_instead=no_browser or no_browser_reason() is not None,
+        intro="Open this URL in a browser to accept the invitation:",
+    ):
         say(state, "Opened the acceptance page. When it says you are signed in, run `coho login`.")
+    else:
+        say(state, "When the page says you are signed in, run `coho login`.")
 
 
 def _strip_fragment(value: str) -> str:

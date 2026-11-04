@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Callable
 from typing import Annotated
@@ -9,12 +10,24 @@ from typing import Annotated
 import typer
 from coho_management_sdk import auth as sdk_auth
 from coho_management_sdk.client import PROJECT_TOKEN_PREFIX
-from coho_management_sdk.errors import NotLoggedIn, Unauthenticated
+from coho_management_sdk.errors import AuthError, NotLoggedIn, Unauthenticated
 from coho_management_sdk.profiles import DEFAULT_SCOPES, Profile
 
+from .._browser import no_browser_reason, open_or_print, print_url
 from .._defaults import PRODUCTION_OIDC_DOMAIN, PRODUCTION_URL, point_at_production
 from .._output import console, record, say, table, warn
 from .._state import State, Usage, get_state
+
+
+class NoTerminal(AuthError):
+    """`coho login` would ask for a pasted code, and there is no terminal to paste it into.
+
+    coho-data doc 73 HL-8: a script cannot paste, and waiting five minutes for it helps
+    nobody, so this fails at once and names the ways a script signs in.
+    """
+
+    code = "AUTH_NO_TERMINAL"
+
 
 # How often `coho login` asks whether the account exists yet, while the person finishes
 # setting it up in a browser. A module constant so a test can shorten it.
@@ -30,11 +43,20 @@ def login(
         ),
     ] = None,
     no_browser: Annotated[
-        bool, typer.Option("--no-browser", help="Print the URL instead of opening it.")
+        bool,
+        typer.Option(
+            "--no-browser",
+            help="Sign in from a browser anywhere, then paste the code it shows. "
+            "The default over SSH, or on Linux with no display.",
+        ),
     ] = False,
     port: Annotated[
         int | None,
-        typer.Option("--port", help="Loopback port for the callback (default: the profile's)."),
+        typer.Option(
+            "--port",
+            help="Loopback port for the callback (default: the profile's). "
+            "Means the loopback flow, even over SSH: for a tunnel.",
+        ),
     ] = None,
     timeout: Annotated[
         int, typer.Option("--timeout", help="Seconds to wait for the browser.")
@@ -42,9 +64,11 @@ def login(
 ) -> None:
     """Sign in to the current profile.
 
-    Opens the identity provider in a browser (PKCE, no client secret) and stores the
-    tokens in the OS keyring, or a 0600 file when there is none. With `--token`, stores
-    the given access token as-is — for a token obtained elsewhere.
+    Opens Coho's sign-in page in a browser (PKCE, no client secret) and stores the
+    tokens in the OS keyring, or a 0600 file when there is none. Where there is no
+    browser (`--no-browser`, an SSH session, Linux with no display), prints the URL to
+    open anywhere and asks for the code the page shows. With `--token`, stores the given
+    access token as-is — for a token obtained elsewhere.
     """
     state = get_state(ctx)
     profile = state.profile
@@ -69,22 +93,21 @@ def login(
                 "or store a token you obtained elsewhere with `coho login --token …`."
             )
 
-        def on_url(url: str) -> None:
-            if no_browser:
-                console.print("Open this URL in a browser to sign in:\n", highlight=False)
-                console.print(url, highlight=False, markup=False, soft_wrap=True)
-            else:
-                console.print(
-                    "Opening your browser to sign in… (use --no-browser to print the URL instead)"
-                )
-
-        tokens = sdk_auth.login(
-            profile,
-            open_browser=(lambda _u: None) if no_browser else None,
-            timeout=timeout,
-            port=port,
-            on_url=on_url,
-        )
+        if no_browser and port is not None:
+            raise Usage(
+                "--no-browser pastes a code; --port is for the loopback flow. Pass one of them."
+            )
+        # HL-6, HL-7: the flag, or plainly no browser here, means pasting a code. An
+        # explicit --port means loopback whatever this machine looks like: a tunnel.
+        headless = no_browser_reason()
+        reason = None if port is not None else ("--no-browser" if no_browser else headless)
+        # Asked once and kept for the organization step after (UL-19): --no-browser means
+        # no browser opened by this command at all.
+        browser_here = headless is None and not no_browser
+        if reason is not None:
+            tokens = _login_by_paste(profile, reason)
+        else:
+            tokens = _login_by_loopback(profile, browser_here, port, timeout)
         store.save(profile.name, tokens)
         say(state, f"Signed in to profile [bold]{profile.name}[/bold].")
         # Confirm the token works, and show who we are. An identity with no organization
@@ -92,10 +115,59 @@ def login(
         _print_me(
             state,
             just_signed_in=True,
-            finish=lambda: _finish_in_browser(state, no_browser, timeout),
+            finish=lambda: _finish_in_browser(state, not browser_here, timeout),
         )
         return
     _print_me(state, just_signed_in=True)
+
+
+def _stdin_is_terminal() -> bool:
+    """A function, so a test can say yes."""
+    return sys.stdin.isatty()
+
+
+def _login_by_paste(profile: Profile, reason: str) -> sdk_auth.TokenSet:
+    """Copy the code (coho-data doc 73 §2): the URL here, the browser anywhere, the code back."""
+    if not _stdin_is_terminal():
+        raise NoTerminal(
+            "there is no terminal here to paste a sign-in code into. In a script, use "
+            "`coho login --token …`, or set COHO_ACCESS_TOKEN (or COHO_TOKEN for a project "
+            "token)"
+        )
+    intro = (
+        "Open this URL in any browser and sign in:"
+        if reason == "--no-browser"
+        else f"No browser here ({reason}); open this URL in any browser and sign in:"
+    )
+
+    def read_code() -> str:
+        return console.input("Then paste the code it shows: ")
+
+    return sdk_auth.login(
+        profile,
+        mode="paste",
+        read_code=read_code,
+        on_url=lambda url: print_url(intro, url),
+    )
+
+
+def _login_by_loopback(
+    profile: Profile, browser_here: bool, port: int | None, timeout: int
+) -> sdk_auth.TokenSet:
+    """The browser comes back to this machine's localhost: opened here, or through a tunnel."""
+    listen = profile.callback_port if port is None else port
+    intro = (
+        "Open this URL in a browser and sign in:"
+        if browser_here
+        else f"Open this URL in a browser whose localhost:{listen} reaches this machine "
+        f"(ssh -L {listen}:localhost:{listen} …), and sign in:"
+    )
+
+    def open_browser(url: str) -> None:
+        if open_or_print(url, print_instead=not browser_here, intro=intro):
+            console.print("Opened your browser to sign in… (or use --no-browser to paste a code)")
+
+    return sdk_auth.login(profile, open_browser=open_browser, timeout=timeout, port=port)
 
 
 def _finish_in_browser(state: State, no_browser: bool, timeout: int) -> None:
@@ -106,19 +178,13 @@ def _finish_in_browser(state: State, no_browser: bool, timeout: int) -> None:
     a second time, once, for an identity in this state. Then this waits for the account
     to exist, which is the same token answering `/me`.
     """
-    import webbrowser
-
     url = state.coho.login_url()
     say(
         state,
         "Coho has no organization for this identity yet. Finish setting up in your browser: "
         "sign in there once more, then name your organization.",
     )
-    if no_browser:
-        console.print("Open this URL in a browser:\n", highlight=False)
-        console.print(url, markup=False, highlight=False, soft_wrap=True)
-    else:
-        webbrowser.open(url)
+    open_or_print(url, print_instead=no_browser, intro="Open this URL in a browser:")
     say(state, "Waiting for your organization… (Ctrl-C to stop)")
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -208,18 +274,16 @@ def signup(
     create your identity and verify your email there, and the page ends by showing
     your new account.
     """
-    import webbrowser
-
     state = get_state(ctx)
     try:
         url = state.coho.signup_url(account_name, display_name=display_name)
     except ValueError as exc:
         raise Usage("the account name cannot be blank") from exc
-    if no_browser:
-        console.print("Open this URL in a browser to sign up:\n", highlight=False)
-        console.print(url, markup=False, highlight=False, soft_wrap=True)
-    else:
-        webbrowser.open(url)
+    if open_or_print(
+        url,
+        print_instead=no_browser or no_browser_reason() is not None,
+        intro="Open this URL in a browser to sign up:",
+    ):
         say(state, "Opened the sign-up page in your browser.")
     say(
         state,

@@ -108,5 +108,11 @@ whole problem document on stdout so a script can read the conflicts or the entri
 | `HTTP_<status>` | a non-problem response (a proxy's HTML page) |
 | `NO_PREVIOUS_TARGET` | `rollback` found nothing to go back to |
 
-In Python these are `CohoError` subclasses; see the
+### The CLI's own
+
+| `code` | Meaning |
+|---|---|
+| `AUTH_NO_TERMINAL` | `coho login` would ask for a pasted code (`--no-browser`, an SSH session, no display), and stdin is not a terminal. Exit 3. A script signs in with `--token`, `COHO_ACCESS_TOKEN`, or `COHO_TOKEN` |
+
+In Python the SDK's are `CohoError` subclasses; see the
 [library's error reference](https://github.com/coho-cms/coho-management-sdk-python/blob/HEAD/docs/errors.md).

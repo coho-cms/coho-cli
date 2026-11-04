@@ -23,12 +23,41 @@ expiry — the same margin the BFF uses for browser sessions — and stores the 
 
 ```
 coho login                     # browser flow
-coho login --no-browser        # print the URL to open elsewhere (SSH sessions)
+coho login --no-browser        # open the URL anywhere, paste back the code it shows
 coho login --port 9000         # a different loopback port; any is accepted
 coho login --token "$TOKEN"    # store a token obtained elsewhere, no browser
 coho logout                    # forget the stored tokens for the profile
 coho whoami                    # /api/v1/me
 ```
+
+### No browser on this machine: paste the code
+
+On an SSH session, in a container, or on any machine with no browser, the loopback flow
+cannot finish: the browser is elsewhere, and its `localhost` is not this machine. So
+`coho login` names the sign-in service's own page, `<oidc_domain>/cli/code`, as the
+redirect instead, and that page **shows** the code rather than sending it anywhere:
+
+```
+$ coho login --no-browser
+Open this URL in any browser and sign in:
+
+  https://auth.coho-cms.com/oauth2/authorize?client_id=coho-cli&redirect_uri=…%2Fcli%2Fcode&…
+
+Then paste the code it shows: ▌
+Signed in to profile default.
+```
+
+It is the default, saying why, when `SSH_CONNECTION` or `SSH_TTY` is set, or on Linux
+with neither `DISPLAY` nor `WAYLAND_DISPLAY`. `--port` asks for the loopback flow
+anyway, for someone with a tunnel (`ssh -L 8765:localhost:8765 your-server`).
+
+The code is exchanged exactly as the loopback flow's is, bound to this run's PKCE
+verifier, so a code from anyone else's sign-in fails. It works once, within five
+minutes. ⚠️ Paste it only into a terminal where you ran `coho login` yourself, as the
+page says: someone who sends you a sign-in link and asks for the code back is asking
+for your session. With no terminal to paste into (stdin is not a TTY), `coho login`
+fails with `AUTH_NO_TERMINAL` rather than waiting; a script uses `COHO_TOKEN` or
+`COHO_ACCESS_TOKEN`.
 
 ### Any loopback port
 

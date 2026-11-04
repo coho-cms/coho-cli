@@ -736,9 +736,139 @@ def test_login_that_is_never_finished_stops_waiting_and_says_what_next(
     run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _signs_in_as(monkeypatch, run, "never-finished")
+    monkeypatch.setattr("coho_cli.commands.auth._stdin_is_terminal", lambda: True)
     out, err = run("login", "--no-browser", "--timeout", "0", expect=2)
     assert f"{bff.url}/auth/login?returnTo=%2Fapi%2Fv1%2Fme" in out
     assert "coho whoami" in " ".join(err.split())
+
+
+# -- a machine with no browser: copy the code (coho-data doc 73) ----------------------
+
+
+def _fake_login(monkeypatch: pytest.MonkeyPatch, run: Run, bff: FakeBff) -> list[dict[str, object]]:
+    """The SDK's login, faked to the point of the URL and the code: records how it was called."""
+    from coho_management_sdk import auth as sdk_auth
+
+    from coho_cli._output import console
+
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    run(
+        "configure",
+        "--profile",
+        "test",
+        "--oidc-domain",
+        "https://auth.example",
+        "--client-id",
+        "coho-cli",
+    )
+    calls: list[dict[str, object]] = []
+
+    def login(profile: object, **kw: object) -> sdk_auth.TokenSet:
+        calls.append(kw)
+        url = "https://auth.example/oauth2/authorize?redirect_uri=x"
+        if kw.get("mode") == "paste":
+            kw["on_url"](url)  # type: ignore[operator]
+            kw["pasted"] = kw["read_code"]()  # type: ignore[operator]
+        else:
+            kw["open_browser"](url)  # type: ignore[operator]
+        return sdk_auth.TokenSet(access_token="test-token")
+
+    monkeypatch.setattr(sdk_auth, "login", login)
+    monkeypatch.setattr(console, "input", lambda prompt="", **_: "the-code")
+    monkeypatch.setattr("coho_cli.commands.auth._stdin_is_terminal", lambda: True)
+    bff.tokens.add("test-token")
+    return calls
+
+
+def test_login_no_browser_prints_the_url_and_takes_the_pasted_code(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _fake_login(monkeypatch, run, bff)
+    monkeypatch.setattr("webbrowser.open", lambda url: pytest.fail("opened a browser"))
+    out, _ = run("login", "--no-browser")
+    assert calls[0]["mode"] == "paste" and calls[0]["pasted"] == "the-code"
+    assert "Open this URL in any browser and sign in:" in out
+    assert "https://auth.example/oauth2/authorize" in out
+    assert "Signed in to profile test" in " ".join(out.split())
+
+
+def test_login_over_ssh_pastes_a_code_and_says_why(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _fake_login(monkeypatch, run, bff)
+    monkeypatch.setenv("SSH_CONNECTION", "10.0.0.1 50000 10.0.0.2 22")
+    monkeypatch.setattr("webbrowser.open", lambda url: pytest.fail("opened a browser"))
+    out, _ = run("login")
+    assert calls[0]["mode"] == "paste"
+    assert "No browser here (SSH session)" in out
+
+
+def test_login_with_a_port_over_ssh_is_the_loopback_flow_for_a_tunnel(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _fake_login(monkeypatch, run, bff)
+    monkeypatch.setenv("SSH_TTY", "/dev/pts/0")
+    monkeypatch.setattr("webbrowser.open", lambda url: pytest.fail("opened a browser"))
+    out, _ = run("login", "--port", "9000")
+    assert "mode" not in calls[0] and calls[0]["port"] == 9000
+    text = " ".join(out.split())
+    assert "ssh -L 9000:localhost:9000" in text and "https://auth.example/oauth2/authorize" in text
+
+
+def test_login_opens_the_browser_here_and_prints_the_url_when_that_fails(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _fake_login(monkeypatch, run, bff)
+    monkeypatch.setattr("webbrowser.open", lambda url: False)
+    out, _ = run("login")
+    assert "mode" not in calls[0]
+    assert "https://auth.example/oauth2/authorize" in out
+
+
+def test_login_no_browser_and_port_do_not_mix(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _fake_login(monkeypatch, run, bff)
+    _, err = run("login", "--no-browser", "--port", "9000", expect=2)
+    assert "Pass one of them" in " ".join(err.split())
+
+
+def test_login_with_no_terminal_to_paste_into_fails_at_once(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = _fake_login(monkeypatch, run, bff)
+    monkeypatch.setattr("coho_cli.commands.auth._stdin_is_terminal", lambda: False)
+    _, err = run("login", "--no-browser", expect=3)
+    text = " ".join(err.split())
+    assert (
+        "AUTH_NO_TERMINAL" in text and "coho login --token" in text and "COHO_ACCESS_TOKEN" in text
+    )
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("env", "platform", "reason"),
+    [
+        ({"SSH_CONNECTION": "a b c d"}, "darwin", "SSH session"),
+        ({"SSH_TTY": "/dev/pts/1", "DISPLAY": ":0"}, "linux", "SSH session"),
+        ({}, "linux", "no display"),
+        ({"WAYLAND_DISPLAY": "wayland-0"}, "linux", None),
+        ({"DISPLAY": ":0"}, "linux", None),
+        ({}, "darwin", None),
+        ({}, "win32", None),
+    ],
+)
+def test_no_browser_reason(
+    monkeypatch: pytest.MonkeyPatch, env: dict[str, str], platform: str, reason: str | None
+) -> None:
+    from coho_cli import _browser
+
+    for name in ("SSH_CONNECTION", "SSH_TTY", "DISPLAY", "WAYLAND_DISPLAY"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setattr("sys.platform", platform)
+    assert _browser.no_browser_reason() == reason
 
 
 def _save_account(home: Path, account: str) -> None:

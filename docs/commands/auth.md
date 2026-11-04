@@ -16,9 +16,15 @@ are, so a bad token fails here rather than on your next command.
 | Option | |
 |---|---|
 | `--token` | store this bearer token; no browser |
-| `--no-browser` | print the sign-in URL instead of opening it (SSH sessions) |
-| `--port` | loopback port for the callback; must be registered on the app client. `0` picks a free port, which Cognito does not accept |
+| `--no-browser` | sign in from a browser anywhere, then paste the code its last page shows. The default over SSH, or on Linux with no display |
+| `--port` | loopback port for the callback; any port works. Means the loopback flow even over SSH, for a tunnel (`ssh -L N:localhost:N`). Not with `--no-browser` |
 | `--timeout` | seconds to wait for the browser, default 300 |
+
+Over SSH (`SSH_CONNECTION` or `SSH_TTY` set), or on Linux with neither `DISPLAY` nor
+`WAYLAND_DISPLAY`, there is no browser to open, so `coho login` prints the URL, says why,
+and asks for the code, as `--no-browser` does. The code works once, within five minutes.
+With nothing to paste into (stdin is not a terminal) it fails at once with
+`AUTH_NO_TERMINAL`: a script uses `--token`, `COHO_ACCESS_TOKEN`, or `COHO_TOKEN`.
 
 Exit 3 if the provider refuses or the token does not work. If the sign-in works but
 Coho has no account for that identity yet, it says so and exits 2: run `coho signup`

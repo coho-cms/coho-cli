@@ -26,6 +26,12 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bff: FakeBff) -> Path:
     monkeypatch.delenv("COHO_ACCOUNT", raising=False)
     monkeypatch.delenv("COHO_PROJECT", raising=False)
     monkeypatch.delenv("COHO_REF", raising=False)
+    # A machine with a browser, wherever the tests run: `coho login` switches to pasting a
+    # code over SSH or on Linux with no display (coho-data doc 73 HL-7), which is CI's
+    # Linux runner. A test of that switch sets these itself.
+    monkeypatch.delenv("SSH_CONNECTION", raising=False)
+    monkeypatch.delenv("SSH_TTY", raising=False)
+    monkeypatch.setenv("DISPLAY", ":0")
     from coho_management_sdk.profiles import Config
 
     c = Config(path=cfg / "config.toml")

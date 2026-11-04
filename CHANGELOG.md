@@ -6,6 +6,22 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `coho login` on a machine with no browser (coho-data doc 73). `--no-browser` now means
+  open the URL in any browser, anywhere, and paste back the code the sign-in's last page
+  shows; before, the sign-in still came back to `localhost:8765` and could finish only on
+  the same machine. It is the default, saying why, over SSH (`SSH_CONNECTION` or
+  `SSH_TTY`) and on Linux with no `DISPLAY` or `WAYLAND_DISPLAY`. `--port` keeps the
+  loopback flow for a tunnel, and prints the URL with the `ssh -L` it needs. With no
+  terminal to paste into, it fails at once with `AUTH_NO_TERMINAL` (exit 3). Needs
+  `coho-management-sdk` with `login(mode="paste")` and a sign-in service with `/cli/code`.
+
+### Changed
+
+- `coho login`, `coho signup`, and `coho invite accept` print the URL when there is no
+  browser to open, or opening one fails, rather than saying nothing.
+
 ## [2026.2.0] — 2026-11-03
 
 The first release out of alpha. Everything below shipped across the 2026.1.0 alphas.
