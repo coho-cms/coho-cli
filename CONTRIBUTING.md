@@ -46,7 +46,8 @@ tests/             the whole command tree against the SDK's FakeBff
 docs/              guides and the command reference
 ```
 
-⚠️ **Push the SDK first.** CI builds the CLI against the SDK's `v2026.1.0` branch on GitHub,
+⚠️ **Push the SDK first.** CI builds the CLI against the SDK's branch of the same version
+(`v2026.2.1`, set in `.github/workflows/ci.yml`) on GitHub,
 not your local copy. A CLI change that uses new SDK code fails CI with
 `"Coho" has no attribute …` until that SDK code is pushed; then re-run the CLI's
 workflow.
@@ -72,13 +73,15 @@ The library, the API contracts and the library reference live in
 ## Releasing
 
 The version comes from git tags (`hatch-vcs`); nothing in the source holds it.
-Tag `v2026.1.0` to release, `v2026.1.0a1`, `b1` or `rc1` for a pre-release. Every
-commit after a tag builds a dev version such as `2026.1.0a2.dev3`. ⚠️ Never tag a dev
+Tag `v2026.2.1` to release, `v2026.2.1a1`, `b1` or `rc1` for a pre-release. Every
+commit after a tag builds a dev version such as `2026.2.1a2.dev3`. Every Coho repository
+works towards one shared version, on a branch named for it: start a new version by
+cutting that branch here and in the SDK, and move CI's SDK `ref:` to it. ⚠️ Never tag a dev
 version: CI refuses it, and every later build would fail.
 
 1. Update the `coho-management-sdk` constraint if the CLI needs a newer library, and add
    a `CHANGELOG.md` entry.
-2. Commit and push, then tag: `git tag v2026.1.0a4 && git push origin v2026.1.0a4`.
+2. Commit and push, then tag: `git tag -a v2026.2.1a2 -m "2026.2.1a2: …" && git push origin v2026.2.1a2`.
 3. CI tests, builds a wheel and an sdist, fails if the tag is not a version in its
    standard form, uploads both as a build artifact, attaches them to a GitHub
    Release (a pre-release for an alpha, beta or release candidate), and publishes
