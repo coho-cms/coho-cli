@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 authors = [{ name = "Coho" }]
 keywords = ["coho", "cms", "headless", "cli", "content"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",

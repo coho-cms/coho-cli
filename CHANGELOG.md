@@ -6,6 +6,10 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+## [2026.2.0] — 2026-11-03
+
+The first release out of alpha. Everything below shipped across the 2026.1.0 alphas.
+
 ### Changed
 
 - A new profile points at Coho's production service: `url = https://api.coho-cms.com`,
@@ -200,5 +204,6 @@ Initial version.
   precondition worth retrying (4) and not-found (5).
 - A local project registry, because the server has no project listing yet.
 
-[Unreleased]: https://github.com/coho-cms/coho-cli/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/coho-cms/coho-cli/compare/v2026.2.0...HEAD
+[2026.2.0]: https://github.com/coho-cms/coho-cli/releases/tag/v2026.2.0
 [0.1.0]: https://github.com/coho-cms/coho-cli/releases/tag/v0.1.0

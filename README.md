@@ -55,7 +55,7 @@ Start with the [quickstart](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/
 
 ## Status
 
-Alpha. The command surface is complete for login, accounts, members, invitations,
+Released: 2026.2.0 is the first version out of alpha. The command surface is complete for login, accounts, members, invitations,
 projects, roles, refs, branches, tags, content types, entries, diff/merge,
 environments, tiers, delivery keys, export and preview. Two things the server does
 not yet offer are handled locally and flagged in the docs: project listing (a local
