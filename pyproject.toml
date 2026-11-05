@@ -30,7 +30,7 @@ dependencies = [
     # fixes. `<2026.3` keeps out 2026.3 and its pre-releases. 2026.2.1a2 is the
     # first with describe_token, permissions_for and credential_source (coho status,
     # coho init --agents); 2026.2.1a1 the first with login(mode="paste").
-    "coho-management-sdk>=2026.2.1a2,<2026.3",
+    "coho-management-sdk>=2026.2.1,<2026.3",
     "typer>=0.12",
     "rich>=13.7",
     "keyring>=25",
@@ -56,6 +56,14 @@ source = "vcs"
 [tool.hatch.version.raw-options]
 # No "+g1a2b3c" suffix: a local version cannot be uploaded to an index.
 local_scheme = "no-local-version"
+
+# ⛔ Only `release-v*` names a version. The branch is named `v2026.2.1` too, so a
+# tag of that name is a second ref of that name: git refuses to push it by name,
+# and `git describe` may choose a neighbouring `v…a2` tag on the same commit, which
+# builds a wheel the release then refuses. The old `v*` tags are still here, so the
+# match keeps them out of the version; `tag_regex` reads what is left.
+tag_regex = "^release-v(?P<version>.+)$"
+git_describe_command = "git describe --dirty --tags --long --match release-v*"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/coho_cli"]

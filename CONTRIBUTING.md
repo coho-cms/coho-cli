@@ -76,15 +76,25 @@ The library, the API contracts and the library reference live in
 ## Releasing
 
 The version comes from git tags (`hatch-vcs`); nothing in the source holds it.
-Tag `v2026.2.1` to release, `v2026.2.1a1`, `b1` or `rc1` for a pre-release. Every
-commit after a tag builds a dev version such as `2026.2.1a2.dev3`. Every Coho repository
-works towards one shared version, on a branch named for it: start a new version by
-cutting that branch here and in the SDK, and move CI's SDK `ref:` to it. ⚠️ Never tag a dev
-version: CI refuses it, and every later build would fail.
+Tag `release-v2026.2.1` to release, `release-v2026.2.1a1`, `b1` or `rc1` for a
+pre-release. Every commit after a tag builds a dev version such as `2026.2.1a2.dev3`.
+
+⛔ **`release-v`, never a bare `v`.** The branch is named `v2026.2.1`, so a tag of
+that name is a second ref of that name: `git push origin v2026.2.1` is refused as
+ambiguous, and with two version tags on one commit `git describe` may pick the older
+one, building a wheel whose version does not match the tag — which CI refuses, as it
+did on 2026-11-05. `git_describe_command` in `pyproject.toml` matches `release-v*`
+only, so the old `v*` tags cannot be chosen.
+
+Every Coho repository works towards one shared version, on a branch named for it:
+start a new version by cutting that branch here and in the SDK, and move CI's SDK
+`ref:` to it. ⚠️ Never tag a dev version: CI refuses it, and every later build would
+fail.
 
 1. Update the `coho-management-sdk` constraint if the CLI needs a newer library, and add
    a `CHANGELOG.md` entry.
-2. Commit and push, then tag: `git tag -a v2026.2.1a2 -m "2026.2.1a2: …" && git push origin v2026.2.1a2`.
+2. Commit and push, then tag: `git tag -a release-v2026.2.1a2 -m "2026.2.1a2: …" &&
+   git push origin refs/tags/release-v2026.2.1a2`.
 3. CI tests, builds a wheel and an sdist, fails if the tag is not a version in its
    standard form, uploads both as a build artifact, attaches them to a GitHub
    Release (a pre-release for an alpha, beta or release candidate), and publishes
