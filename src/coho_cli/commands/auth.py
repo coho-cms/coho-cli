@@ -15,7 +15,7 @@ from coho_management_sdk.profiles import DEFAULT_SCOPES, Profile
 
 from .._browser import no_browser_reason, open_or_print, print_url
 from .._defaults import PRODUCTION_OIDC_DOMAIN, PRODUCTION_URL, point_at_production
-from .._output import console, record, say, table, warn
+from .._output import console, err, record, say, table, warn
 from .._state import State, Usage, get_state
 
 
@@ -140,14 +140,16 @@ def _login_by_paste(profile: Profile, reason: str) -> sdk_auth.TokenSet:
         else f"No browser here ({reason}); open this URL in any browser and sign in:"
     )
 
+    # On stderr, like every prompt in `coho login`: the command's answer on stdout is who
+    # you are, possibly as JSON into a pipe, and the person must see the prompt regardless.
     def read_code() -> str:
-        return console.input("Then paste the code it shows: ")
+        return err.input("Then paste the code it shows: ")
 
     return sdk_auth.login(
         profile,
         mode="paste",
         read_code=read_code,
-        on_url=lambda url: print_url(intro, url),
+        on_url=lambda url: print_url(intro, url, to=err),
     )
 
 
@@ -164,8 +166,8 @@ def _login_by_loopback(
     )
 
     def open_browser(url: str) -> None:
-        if open_or_print(url, print_instead=not browser_here, intro=intro):
-            console.print("Opened your browser to sign in… (or use --no-browser to paste a code)")
+        if open_or_print(url, print_instead=not browser_here, intro=intro, to=err):
+            err.print("Opened your browser to sign in… (or use --no-browser to paste a code)")
 
     return sdk_auth.login(profile, open_browser=open_browser, timeout=timeout, port=port)
 
@@ -184,7 +186,7 @@ def _finish_in_browser(state: State, no_browser: bool, timeout: int) -> None:
         "Coho has no organization for this identity yet. Finish setting up in your browser: "
         "sign in there once more, then name your organization.",
     )
-    open_or_print(url, print_instead=no_browser, intro="Open this URL in a browser:")
+    open_or_print(url, print_instead=no_browser, intro="Open this URL in a browser:", to=err)
     say(state, "Waiting for your organization… (Ctrl-C to stop)")
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:

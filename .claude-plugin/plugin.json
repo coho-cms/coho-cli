@@ -1,0 +1,10 @@
+{
+  "name": "coho",
+  "displayName": "Coho",
+  "description": "Teaches Claude Code to work with Coho, the branch-native headless CMS, through the coho CLI: check what you may do, read and change content, branch, merge, and release safely.",
+  "author": { "name": "Coho", "url": "https://github.com/coho-cms" },
+  "homepage": "https://github.com/coho-cms/coho-cli",
+  "repository": "https://github.com/coho-cms/coho-cli",
+  "license": "Apache-2.0",
+  "keywords": ["coho", "cms", "headless-cms", "cli", "content"]
+}

@@ -123,7 +123,7 @@ frees it for another project to take.
 | `COHO_ACCOUNT`, `COHO_PROJECT`, `COHO_REF` | override the context |
 | `COHO_TOKEN` | a project token for automation; wins over everything |
 | `COHO_ACCESS_TOKEN` | use this bearer token, ignoring the store |
-| `COHO_OUTPUT` | `table` or `json` |
+| `COHO_OUTPUT` | `table` or `json`; unset, `table` on a terminal and `json` when stdout is piped or redirected |
 | `COHO_CONFIG_DIR` | where `config.toml` and `credentials.json` live |
 
 ## Global options
@@ -133,6 +133,13 @@ frees it for another project to take.
 --account X  --project X  --ref X                  -q, --quiet   -y, --yes
 -V, --version          -h, --help
 ```
+
+`--output` defaults to `table` when stdout is a terminal and `json` when it is not (a
+pipe, a file, a program or an agent capturing output). Pass it, or set `COHO_OUTPUT`,
+to choose either way. Prompts, such as `coho login`'s, go to stderr, so they reach you
+when stdout is piped.
+
+`--help` on any command ends with a link to its page in these docs.
 
 `--yes` skips the confirmation prompts that destructive verbs ask (`entry delete`,
 `member remove`, `env delete`, `key revoke`, `rollback`). `--quiet` suppresses the

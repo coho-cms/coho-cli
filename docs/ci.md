@@ -18,14 +18,18 @@ env:
   COHO_OUTPUT: json
 ```
 
-It overrides the keyring and needs no config file. It works only for that project's
+It overrides the keyring and needs no config file. `coho status` shows the token's
+label, expiry, and role, and the permissions that role holds, so a job can check what
+it may do before trying. It works only for that project's
 content, expires (90 days by default, 365 at most), and `coho token revoke` stops it on
 its next request. `coho token list` shows when each was last used.
 
 ## Output
 
 `--output json` (or `COHO_OUTPUT=json`) prints the contract's response verbatim, so
-`jq` works against the documented shapes:
+`jq` works against the documented shapes. It is also the default whenever stdout is not
+a terminal, as in CI, but setting it keeps a job's output the same if a runner ever
+gives it one:
 
 ```bash
 coho entry list --all | jq -r '.entries[] | [.id, .slug] | @tsv'
@@ -80,3 +84,14 @@ site = coho.account("acme").project(os.environ["COHO_PROJECT"])
 site.tags.create(f"v{version}", branch="v0.0.x", description=notes, validate=True)
 site.environments.promote("qa", f"v{version}", wait=True, timeout=600)
 ```
+
+## Keeping `COHO.md` current
+
+A repository with a [`COHO.md`](agents.md) can fail its build when the content model has
+changed and the file was not regenerated:
+
+```bash
+coho init --agents --check
+```
+
+It writes nothing, and exits 1 naming the stale files. A `viewer` token is enough.

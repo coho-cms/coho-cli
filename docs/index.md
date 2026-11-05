@@ -9,7 +9,7 @@ and `--output json` for scripts.
 
 | | |
 |---|---|
-| [Install](install.md) | uv, pipx, from source; shell completion |
+| [Install](install.md) | uv, pipx, from source; shell completion; the Claude Code plugin |
 | [Quickstart](quickstart.md) | login → project → type → entry → branch → merge → tag → promote, in ten minutes |
 | [Authentication](authentication.md) | PKCE login, token storage, `COHO_ACCESS_TOKEN`, the CLI's app client |
 | [Configuration and context](configuration.md) | `config.toml`, profiles, `coho use`, environment variables, the local project registry |
@@ -17,6 +17,7 @@ and `--output json` for scripts.
 | [Content model](content-model.md) | type definitions, field types, entries, locales, references |
 | [Errors and exit codes](errors.md) | branching on `code`, the catalogue, what the CLI exits with |
 | [CI usage](ci.md) | running `coho` headless, JSON output, tokens, idempotency |
+| [Coding agents](agents.md) | `coho init --agents` and COHO.md, `coho status`, the Claude Code plugin |
 
 ## Reference
 

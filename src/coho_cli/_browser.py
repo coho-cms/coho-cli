@@ -11,6 +11,8 @@ import os
 import sys
 import webbrowser
 
+from rich.console import Console
+
 from ._output import console
 
 
@@ -25,19 +27,24 @@ def no_browser_reason() -> str | None:
     return None
 
 
-def print_url(intro: str, url: str) -> None:
-    console.print(f"{intro}\n", highlight=False)
-    console.print(f"  {url}", markup=False, highlight=False, soft_wrap=True)
-    console.print()
+def print_url(intro: str, url: str, *, to: Console = console) -> None:
+    to.print(f"{intro}\n", highlight=False)
+    to.print(f"  {url}", markup=False, highlight=False, soft_wrap=True)
+    to.print()
 
 
-def open_or_print(url: str, *, print_instead: bool, intro: str) -> bool:
+def open_or_print(url: str, *, print_instead: bool, intro: str, to: Console = console) -> bool:
     """Open [url] here, or print it under [intro]. Printed too when the opening fails.
+
+    Args:
+        to: stdout by default, where the URL is the command's answer (`coho signup`).
+            Stderr for a step in the middle of a command whose answer is something else,
+            so the step reaches the person even when stdout is piped (`coho login`).
 
     Returns:
         True when a browser was opened here.
     """
     if not print_instead and webbrowser.open(url):
         return True
-    print_url(intro, url)
+    print_url(intro, url, to=to)
     return False

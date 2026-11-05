@@ -13,6 +13,7 @@ Global options: `-p/--profile`, `-o/--output table|json`, `--url`, `--account`,
 |---|---|
 | [auth](auth.md) | `login`, `logout`, `whoami`, `signup`, `configure`, `profile list/show/use/delete` |
 | [context](context.md) | `use`, `status` |
+| [init](init.md) | `init --agents` — COHO.md for coding agents, from the live project |
 | [account](account.md) | `account list/show/rename/entitlements/usage/events/plans` |
 | [member](member.md) | `member list/role/remove/leave` |
 | [invite](invite.md) | `invite create/list/revoke/lookup/accept` |

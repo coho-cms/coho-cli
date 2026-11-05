@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import os
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from coho_management_sdk.errors import CohoError
+from coho_management_sdk.models import ALL_PERMISSIONS, permissions_for
+from rich.markup import escape
 
 from .._output import console, record, say, warn
 from .._state import State, Usage, get_state
@@ -89,30 +91,162 @@ def use(
     status(ctx)
 
 
+# How `status` names each credential source (`TokenProvider.source`), for a person reading it.
+_SOURCES = {
+    "COHO_TOKEN": "COHO_TOKEN",
+    "COHO_ACCESS_TOKEN": "COHO_ACCESS_TOKEN",
+    "token": "a token given to the client",
+    "login": "coho login, refreshed as needed",
+    "stored": "coho login --token, not refreshed",
+}
+
+
+def _who(state: State) -> dict[str, Any]:
+    """Who the credential is, and what it may do where the context points.
+
+    Every lookup is best effort: signed out, offline, or a context the credential cannot
+    see leaves the field None rather than failing `status`, which must always answer.
+    """
+    c = state.context
+    source = state.coho.credential_source
+    out: dict[str, Any] = {
+        "credential": None,
+        "accountRole": None,
+        "projectRole": None,
+        "permissions": None,
+    }
+    if source is None:
+        return out
+    if state.coho.uses_project_token:
+        cred: dict[str, Any] = {"kind": "project_token", "source": source}
+        try:
+            d = state.coho.describe_token()
+        except CohoError:
+            out["credential"] = cred
+            return out
+        cred |= {
+            "id": d.token_id,
+            "label": d.label,
+            "expiresAt": d.expires_at,
+            "account": d.account_id,
+            "accountName": d.account_name,
+            "project": d.project_id,
+            "projectName": d.project_name,
+        }
+        out["credential"] = cred
+        # A project token holds one role in one project and nothing anywhere else.
+        if c.project in (None, d.project_id):
+            out["projectRole"] = d.role
+            out["permissions"] = list(permissions_for(d.role))
+        else:
+            out["permissions"] = []
+        return out
+    cred = {"kind": "person", "source": source}
+    try:
+        me = state.coho.me()
+    except (CohoError, Usage):
+        out["credential"] = cred
+        return out
+    cred |= {"user": me.user_id, "name": me.display_name, "email": me.email}
+    out["credential"] = cred
+    if not c.account:
+        return out
+    membership = me.membership(c.account)
+    if membership is None:
+        return out
+    out["accountRole"] = membership.role
+    if c.project:
+        try:
+            summary = next(
+                (p for p in state.coho.account(c.account).projects.list() if p.id == c.project),
+                None,
+            )
+        except (CohoError, Usage):
+            return out
+        role = summary.role if summary else None
+        out["projectRole"] = role
+        out["permissions"] = list(permissions_for(role))
+    return out
+
+
+def _credential_line(cred: dict[str, Any] | None) -> str:
+    if cred is None:
+        return "none: run `coho login`, or set COHO_TOKEN"
+    source = _SOURCES.get(cred["source"], cred["source"])
+    if cred["kind"] == "project_token":
+        if "id" not in cred:
+            return f"project token, from {source} (not accepted)"
+        expires = f", expires {cred['expiresAt'][:10]}" if cred.get("expiresAt") else ""
+        label = f' "{escape(cred["label"])}"' if cred.get("label") else ""
+        return f"project token{label}, from {source}{expires}"
+    if "user" not in cred:
+        return f"a person, from {source} (not accepted: run `coho login`)"
+    who = cred.get("email") or cred.get("name") or cred["user"]
+    return f"{escape(who)}, from {source}"
+
+
+def _project_role_line(who: dict[str, Any]) -> str | None:
+    role = who["projectRole"]
+    if role is None:
+        return None
+    if who["credential"]["kind"] == "project_token":
+        return f"{role} (the token's)"
+    if role == "owner" and who["accountRole"] == "admin":
+        return "owner (as an account admin)"
+    return str(role)
+
+
+def _permissions_line(who: dict[str, Any]) -> str | None:
+    perms = who["permissions"]
+    if perms is None:
+        return None
+    if perms == [ALL_PERMISSIONS]:
+        return "everything (*)"
+    if not perms:
+        cred = who["credential"] or {}
+        if cred.get("kind") == "project_token":
+            return "nothing here: the token works only in its own project"
+        return "nothing here"
+    return ", ".join(perms)
+
+
 def status(ctx: typer.Context) -> None:
-    """Show the current profile and context."""
+    """Show the profile, the credential in use, the context, and your role and permissions there.
+
+    The roles and permissions are what the server will allow in the current project, so a
+    person or a program can tell what it may do before trying.
+    """
     state = get_state(ctx)
     profile = state.profile
     c = state.context
     project_name = profile.project_name(c.account, c.project) if c.account and c.project else None
     account_name = _account_name(state, c.account) if c.account else None
+    who = _who(state)
     record(
         state,
         {
             "profile": profile.name,
             "url": state.config.effective_url(profile),
+            "credential": who["credential"],
             "account": c.account,
             "accountName": account_name,
+            "accountRole": who["accountRole"],
             "project": c.project,
             "projectName": project_name,
+            "projectRole": who["projectRole"],
             "ref": c.ref,
+            "permissions": who["permissions"],
         },
         [
             ("profile", profile.name),
             ("url", state.config.effective_url(profile) or None),
+            ("credential", _credential_line(who["credential"])),
             ("account", f"{account_name} ({c.account})" if account_name else c.account),
+            ("account role", who["accountRole"]),
             ("project", f"{project_name}  ({c.project})" if project_name else c.project),
+            ("project role", _project_role_line(who)),
             ("ref", c.ref),
+            ("permissions", _permissions_line(who)),
         ],
     )
     if state.output != "json" and not c.account:

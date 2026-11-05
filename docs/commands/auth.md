@@ -26,6 +26,9 @@ and asks for the code, as `--no-browser` does. The code works once, within five 
 With nothing to paste into (stdin is not a terminal) it fails at once with
 `AUTH_NO_TERMINAL`: a script uses `--token`, `COHO_ACCESS_TOKEN`, or `COHO_TOKEN`.
 
+The URL, and the prompt for a code, go to stderr, so they reach you when stdout is piped
+or captured.
+
 Exit 3 if the provider refuses or the token does not work. If the sign-in works but
 Coho has no account for that identity yet, it says so and exits 2: run `coho signup`
 and choose **Sign in** on the provider's page, or accept an invitation.

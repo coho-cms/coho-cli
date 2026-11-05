@@ -41,9 +41,12 @@ src/coho_cli/
   _state.py        config/profile/client/context resolution for commands
   _output.py       tables, JSON, shown-once secrets
   _io.py           --file and --set parsing
+  _browser.py      whether there is a browser here; opening one or printing the URL
+  _agents.py       `coho init --agents`: COHO.md and the AGENTS.md/CLAUDE.md block
   commands/        one module per noun
 tests/             the whole command tree against the SDK's FakeBff
 docs/              guides and the command reference
+skills/coho/       the Claude Code skill; .claude-plugin/ makes the repository a plugin
 ```
 
 ⚠️ **Push the SDK first.** CI builds the CLI against the SDK's branch of the same version

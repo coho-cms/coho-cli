@@ -17,8 +17,36 @@ All notable changes to `coho-cli`. The format follows
   terminal to paste into, it fails at once with `AUTH_NO_TERMINAL` (exit 3). Needs
   `coho-management-sdk` with `login(mode="paste")` and a sign-in service with `/cli/code`.
 
+- `coho status` shows the credential in use (a person, from `coho login` or a stored
+  token; or a project token, with its label and expiry), your account role, your project
+  role, and that role's permissions, so a person, a script, or an AI agent can tell what
+  it may do in the current context before trying. `--output json` gives them as
+  `credential`, `accountRole`, `projectRole`, and `permissions`.
+- `coho init --agents` writes `COHO.md` from the live project, for coding agents: its ids,
+  every content type and component type with every field (required, localized, choices,
+  references, bounds, editor help), the locales its entries use, its branches,
+  environments and tags, and the rules for changing content (`-o json`, read before
+  write, the ETag on every replacing write, exit 4 means re-read, write on a branch,
+  never merge, tag, promote or roll back). `AGENTS.md` and `CLAUDE.md` get a marked block
+  pointing at it, merged the way `next dev` merges its own. Regenerating describes the
+  project an existing `COHO.md` names (or `coho.config.json`, for `@coho-cms/codegen`),
+  and `--check` exits 1 when the files are out of date. See `docs/agents.md`.
+- `--help` on every command ends with a link to its page in `docs/` on GitHub.
+- A Claude Code plugin with a `coho` skill, in this repository (`.claude-plugin/`,
+  `skills/coho/SKILL.md`): `/plugin marketplace add coho-cms/coho-cli`, then
+  `/plugin install coho@coho-cms`. It teaches Claude to start from `coho status`, keep to
+  what the role allows, read `COHO.md`, leave signing in and releasing (merge, tag,
+  promote, rollback) to the user, and ask before deleting, granting, or making a secret.
+  It pre-approves only commands that read.
+
 ### Changed
 
+- `--output` defaults to `json` when stdout is not a terminal (a pipe, a file, an agent
+  capturing output), and to `table` on one. `--output` or `COHO_OUTPUT` still chooses.
+  `coho login`'s prompts (the URL, the code) go to stderr, so they reach you when stdout
+  is piped.
+- `coho role ladder` reads the roles from `coho-management-sdk`, and so now shows
+  `promote:preview` for `author`, which the server has granted all along.
 - `coho login`, `coho signup`, and `coho invite accept` print the URL when there is no
   browser to open, or opening one fails, rather than saying nothing.
 

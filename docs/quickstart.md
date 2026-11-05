@@ -176,3 +176,15 @@ coho -o json entry list --all | jq '.entries[] | .slug'
 ```
 
 See [CI usage](ci.md).
+
+## With a coding agent
+
+In the repository of a site that reads this project:
+
+```bash
+coho init --agents
+```
+
+writes `COHO.md`, describing the project's types, fields, locales and environments to an
+agent such as Claude Code, with the rules for changing content. See
+[coding agents](agents.md).

@@ -1,0 +1,12 @@
+{
+  "name": "coho-cms",
+  "owner": { "name": "Coho", "url": "https://github.com/coho-cms" },
+  "description": "Coho's plugins for Claude Code.",
+  "plugins": [
+    {
+      "name": "coho",
+      "source": "./",
+      "description": "Work with Coho through the coho CLI: check what you may do, read and change content, branch, merge, and release safely."
+    }
+  ]
+}

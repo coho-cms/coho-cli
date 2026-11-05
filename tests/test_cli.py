@@ -188,11 +188,100 @@ def test_use_finds_a_project_by_its_server_name_without_any_local_memory(run: Ru
 def test_status_shows_name_then_id_for_account_and_project(run: Run) -> None:
     run("use", "acme", PROJECT, "dev")
     out, _ = run("status")
-    assert f"account  Acme ({ACCOUNT})" in out
-    assert f"project  Marketing site  ({PROJECT})" in out
+    words = " ".join(out.split())  # the columns' width depends on the longest label
+    assert f"account Acme ({ACCOUNT})" in words
+    assert f"project Marketing site ({PROJECT})" in words
     out, _ = run("-o", "json", "status")
     body = json.loads(out)
     assert body["accountName"] == "Acme" and body["projectName"] == "Marketing site"
+
+
+def test_status_says_who_is_signed_in_and_what_they_may_do_here(run: Run) -> None:
+    """For an agent as much as a person: what it may do here, before it tries."""
+    run("use", "acme", PROJECT, "dev")
+    body = json.loads(run("-o", "json", "status")[0])
+    assert body["credential"] == {
+        "kind": "person",
+        "source": "COHO_ACCESS_TOKEN",
+        "user": testing.USER,
+        "name": "Ada",
+        "email": "ada@acme.example",
+    }
+    assert body["accountRole"] == "admin" and body["projectRole"] == "owner"
+    assert body["permissions"] == ["*"]
+    words = " ".join(run("status")[0].split())
+    assert "account role admin" in words
+    assert "project role owner (as an account admin)" in words
+    assert "permissions everything (*)" in words
+
+
+def test_status_for_a_project_token_shows_the_token_and_its_role(
+    run: Run, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    monkeypatch.setenv("COHO_TOKEN", testing.PROJECT_TOKEN)
+    body = json.loads(run("-o", "json", "--account", ACCOUNT, "--project", PROJECT, "status")[0])
+    cred = body["credential"]
+    assert (cred["kind"], cred["source"], cred["label"]) == (
+        "project_token",
+        "COHO_TOKEN",
+        "CI deploy",
+    )
+    assert cred["project"] == PROJECT and cred["expiresAt"].startswith("2027-02-02")
+    assert body["accountRole"] is None and body["projectRole"] == "author"
+    assert body["permissions"] == [
+        "content:read",
+        "content:write",
+        "branch:create",
+        "promote:preview",
+    ]
+    words = " ".join(run("--account", ACCOUNT, "--project", PROJECT, "status")[0].split())
+    assert 'project token "CI deploy", from COHO_TOKEN, expires 2027-02-02' in words
+    assert "project role author (the token's)" in words
+
+    # Pointed at another project, the token may do nothing there.
+    other = "99999999-9999-4999-8999-999999999999"
+    body = json.loads(run("-o", "json", "--account", ACCOUNT, "--project", other, "status")[0])
+    assert body["projectRole"] is None and body["permissions"] == []
+
+
+def test_status_with_no_credential_still_answers(run: Run, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("COHO_ACCESS_TOKEN")
+    body = json.loads(run("-o", "json", "status")[0])
+    assert body["credential"] is None and body["permissions"] is None
+    assert "run `coho login`" in " ".join(run("status")[0].split())
+
+
+def test_output_is_json_by_default_when_stdout_is_not_a_terminal(
+    run: Run, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("COHO_OUTPUT")
+    out, _ = run("status")  # pytest captures stdout: not a terminal
+    assert json.loads(out)["profile"] == "test"
+    out, _ = run("-o", "table", "status")
+    assert out.startswith("profile")
+
+
+def test_every_help_page_links_to_a_doc_that_exists() -> None:
+    import re
+    from pathlib import Path
+
+    from typer.main import get_command
+
+    from coho_cli.main import DOCS_URL, app
+
+    docs = Path(__file__).resolve().parent.parent / "docs"
+    pages: set[str] = set()
+
+    def walk(cmd: object) -> None:
+        epilog = getattr(cmd, "epilog", None)
+        assert epilog and DOCS_URL in epilog, getattr(cmd, "name", cmd)
+        pages.add(re.sub(rf"^.*{re.escape(DOCS_URL)}/", "", epilog))
+        for sub in getattr(cmd, "commands", {}).values():
+            walk(sub)
+
+    walk(get_command(app))
+    assert pages and all((docs / page).is_file() for page in pages), pages
 
 
 def test_two_projects_with_one_name_must_be_chosen_by_id(
@@ -231,7 +320,7 @@ def test_project_rename_replaces_the_old_name_in_the_registry(run: Run, home: Pa
     assert cfg.context.project == PROJECT
 
     out, _ = run("status")
-    assert f"project  Brand site  ({PROJECT})" in out
+    assert f"project Brand site ({PROJECT})" in " ".join(out.split())
 
 
 def test_entry_list_table_and_json(run: Run) -> None:
@@ -738,7 +827,8 @@ def test_login_that_is_never_finished_stops_waiting_and_says_what_next(
     _signs_in_as(monkeypatch, run, "never-finished")
     monkeypatch.setattr("coho_cli.commands.auth._stdin_is_terminal", lambda: True)
     out, err = run("login", "--no-browser", "--timeout", "0", expect=2)
-    assert f"{bff.url}/auth/login?returnTo=%2Fapi%2Fv1%2Fme" in out
+    # On stderr: a step inside `coho login`, whose answer on stdout is who you are.
+    assert f"{bff.url}/auth/login?returnTo=%2Fapi%2Fv1%2Fme" in err
     assert "coho whoami" in " ".join(err.split())
 
 
@@ -749,7 +839,7 @@ def _fake_login(monkeypatch: pytest.MonkeyPatch, run: Run, bff: FakeBff) -> list
     """The SDK's login, faked to the point of the URL and the code: records how it was called."""
     from coho_management_sdk import auth as sdk_auth
 
-    from coho_cli._output import console
+    from coho_cli._output import err
 
     monkeypatch.delenv("COHO_ACCESS_TOKEN")
     run(
@@ -774,7 +864,7 @@ def _fake_login(monkeypatch: pytest.MonkeyPatch, run: Run, bff: FakeBff) -> list
         return sdk_auth.TokenSet(access_token="test-token")
 
     monkeypatch.setattr(sdk_auth, "login", login)
-    monkeypatch.setattr(console, "input", lambda prompt="", **_: "the-code")
+    monkeypatch.setattr(err, "input", lambda prompt="", **_: "the-code")
     monkeypatch.setattr("coho_cli.commands.auth._stdin_is_terminal", lambda: True)
     bff.tokens.add("test-token")
     return calls
@@ -785,10 +875,12 @@ def test_login_no_browser_prints_the_url_and_takes_the_pasted_code(
 ) -> None:
     calls = _fake_login(monkeypatch, run, bff)
     monkeypatch.setattr("webbrowser.open", lambda url: pytest.fail("opened a browser"))
-    out, _ = run("login", "--no-browser")
+    out, err = run("login", "--no-browser")
     assert calls[0]["mode"] == "paste" and calls[0]["pasted"] == "the-code"
-    assert "Open this URL in any browser and sign in:" in out
-    assert "https://auth.example/oauth2/authorize" in out
+    # The prompt on stderr, the answer on stdout, so a pipe takes only the answer.
+    assert "Open this URL in any browser and sign in:" in err
+    assert "https://auth.example/oauth2/authorize" in err
+    assert "authorize" not in out
     assert "Signed in to profile test" in " ".join(out.split())
 
 
@@ -798,9 +890,9 @@ def test_login_over_ssh_pastes_a_code_and_says_why(
     calls = _fake_login(monkeypatch, run, bff)
     monkeypatch.setenv("SSH_CONNECTION", "10.0.0.1 50000 10.0.0.2 22")
     monkeypatch.setattr("webbrowser.open", lambda url: pytest.fail("opened a browser"))
-    out, _ = run("login")
+    _, err = run("login")
     assert calls[0]["mode"] == "paste"
-    assert "No browser here (SSH session)" in out
+    assert "No browser here (SSH session)" in err
 
 
 def test_login_with_a_port_over_ssh_is_the_loopback_flow_for_a_tunnel(
@@ -809,9 +901,9 @@ def test_login_with_a_port_over_ssh_is_the_loopback_flow_for_a_tunnel(
     calls = _fake_login(monkeypatch, run, bff)
     monkeypatch.setenv("SSH_TTY", "/dev/pts/0")
     monkeypatch.setattr("webbrowser.open", lambda url: pytest.fail("opened a browser"))
-    out, _ = run("login", "--port", "9000")
+    _, err = run("login", "--port", "9000")
     assert "mode" not in calls[0] and calls[0]["port"] == 9000
-    text = " ".join(out.split())
+    text = " ".join(err.split())
     assert "ssh -L 9000:localhost:9000" in text and "https://auth.example/oauth2/authorize" in text
 
 
@@ -820,9 +912,9 @@ def test_login_opens_the_browser_here_and_prints_the_url_when_that_fails(
 ) -> None:
     calls = _fake_login(monkeypatch, run, bff)
     monkeypatch.setattr("webbrowser.open", lambda url: False)
-    out, _ = run("login")
+    _, err = run("login")
     assert "mode" not in calls[0]
-    assert "https://auth.example/oauth2/authorize" in out
+    assert "https://auth.example/oauth2/authorize" in err
 
 
 def test_login_no_browser_and_port_do_not_mix(

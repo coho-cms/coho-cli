@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import typer
-from coho_management_sdk.models import PROJECT_ROLES
+from coho_management_sdk.models import ALL_PERMISSIONS, PROJECT_ROLES, permissions_for
 
 from .._output import console, record, say, table
 from .._state import State, Usage, get_state
@@ -70,14 +70,22 @@ def revoke(
 def ladder(ctx: typer.Context) -> None:
     """What each role may do."""
     state = get_state(ctx)
-    rows = [
-        ("viewer", "content:read"),
-        ("author", "+ content:write, branch:create"),
-        ("maintainer", "+ merge, release:tag, promote:dev, promote:qa"),
-        ("release_manager", "+ promote:stage, promote:prod, branch:create_version"),
-        ("owner", "all, including role:grant, delivery:keys, workflow:write"),
-    ]
-    table(state, [{"role": r, "permissions": p} for r, p in rows], ["ROLE", "PERMISSIONS"], rows)
+    rows: list[tuple[str, str]] = []
+    below: tuple[str, ...] = ()
+    for r in PROJECT_ROLES:
+        held = permissions_for(r)
+        if held == (ALL_PERMISSIONS,):
+            rows.append((r, "all, including role:grant, delivery:keys, workflow:write"))
+        else:
+            added = [p for p in held if p not in below]
+            rows.append((r, ("+ " if below else "") + ", ".join(added)))
+            below = held
+    table(
+        state,
+        [{"role": r, "permissions": list(permissions_for(r))} for r in PROJECT_ROLES],
+        ["ROLE", "PERMISSIONS"],
+        rows,
+    )
 
 
 def _actor_names(state: State) -> dict[str, str]:

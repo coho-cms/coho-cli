@@ -32,7 +32,7 @@ Prints the seeded ladder:
 | Role | Permissions |
 |---|---|
 | `viewer` | `content:read` |
-| `author` | + `content:write`, `branch:create` |
+| `author` | + `content:write`, `branch:create`, `promote:preview` |
 | `maintainer` | + `merge`, `release:tag`, `promote:dev`, `promote:qa` |
 | `release_manager` | + `promote:stage`, `promote:prod`, `branch:create_version` |
 | `owner` | all, including `role:grant`, `delivery:keys`, `workflow:write` |

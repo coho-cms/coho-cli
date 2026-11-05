@@ -44,11 +44,24 @@ Python 3.11 or newer; `uv` downloads one if you have none. The package is `coho-
 `coho` on PyPI is an unrelated project. [Install](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/install.md)
 covers building from source.
 
+### With Claude Code
+
+This repository is also a Claude Code plugin with a skill for `coho`:
+
+```
+/plugin marketplace add coho-cms/coho-cli
+/plugin install coho@coho-cms
+```
+
+See [Install](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/install.md#claude-code). `coho init --agents` then writes
+`COHO.md`, describing your project to the agent from the live content model: see
+[coding agents](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/agents.md).
+
 ## Documentation
 
 Start with the [quickstart](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/quickstart.md). Everything else is in [`docs/`](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/index.md):
 
-- **Guides:** [install](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/install.md) · [authentication](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/authentication.md) · [configuration and context](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/configuration.md) · [concepts](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/concepts.md) · [content model](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/content-model.md) · [errors and exit codes](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/errors.md) · [CI usage](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/ci.md)
+- **Guides:** [install](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/install.md) · [authentication](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/authentication.md) · [configuration and context](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/configuration.md) · [concepts](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/concepts.md) · [content model](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/content-model.md) · [errors and exit codes](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/errors.md) · [CI usage](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/ci.md) · [coding agents](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/agents.md)
 - **Command reference:** [`docs/commands/`](https://github.com/coho-cms/coho-cli/blob/HEAD/docs/commands/index.md), one page per noun
 - **Library reference:** [coho-management-sdk-python/docs](https://github.com/coho-cms/coho-management-sdk-python/tree/HEAD/docs) — for using `coho_management_sdk` directly
 - **Contributing:** [CONTRIBUTING.md](https://github.com/coho-cms/coho-cli/blob/HEAD/CONTRIBUTING.md) · [SECURITY.md](https://github.com/coho-cms/coho-cli/blob/HEAD/SECURITY.md) · [CHANGELOG.md](https://github.com/coho-cms/coho-cli/blob/HEAD/CHANGELOG.md)

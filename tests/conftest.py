@@ -32,6 +32,9 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bff: FakeBff) -> Path:
     monkeypatch.delenv("SSH_CONNECTION", raising=False)
     monkeypatch.delenv("SSH_TTY", raising=False)
     monkeypatch.setenv("DISPLAY", ":0")
+    # Tables, as on a terminal: pytest captures stdout, which is not a TTY, so the CLI would
+    # otherwise default to JSON. A test of that default unsets this itself.
+    monkeypatch.setenv("COHO_OUTPUT", "table")
     from coho_management_sdk.profiles import Config
 
     c = Config(path=cfg / "config.toml")

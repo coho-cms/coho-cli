@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import io
 import sys
-from typing import Annotated
+from collections.abc import Callable
+from typing import Annotated, Any
 
 import typer
 from coho_management_sdk import CohoError
@@ -43,6 +44,7 @@ from .commands import (
     entry,
     env,
     export,
+    init,
     invite,
     key,
     member,
@@ -62,9 +64,18 @@ from .commands import (
 
 err = Console(stderr=True)
 
+# Where `--help` sends a reader for more: this repository's own docs, on GitHub.
+DOCS_URL = "https://github.com/coho-cms/coho-cli/blob/HEAD/docs"
+
+
+def _docs(page: str) -> str:
+    return f"Docs: {DOCS_URL}/{page}"
+
+
 app = typer.Typer(
     name="coho",
     help="Manage Coho: accounts, projects, branches, releases and content.",
+    epilog=_docs("index.md"),
     no_args_is_help=True,
     add_completion=True,
     pretty_exceptions_enable=False,
@@ -108,11 +119,15 @@ def _root(
         str | None, typer.Option("--profile", "-p", envvar="COHO_PROFILE", help="Profile to use.")
     ] = None,
     output: Annotated[
-        str,
+        str | None,
         typer.Option(
-            "--output", "-o", envvar="COHO_OUTPUT", help="`table` for people, `json` for scripts."
+            "--output",
+            "-o",
+            envvar="COHO_OUTPUT",
+            help="`table` for people, `json` for scripts. "
+            "Default: table on a terminal, json when stdout is piped or redirected.",
         ),
-    ] = "table",
+    ] = None,
     url: Annotated[
         str | None, typer.Option("--url", envvar="COHO_URL", help="Override the profile's BFF URL.")
     ] = None,
@@ -137,6 +152,9 @@ def _root(
         ),
     ] = None,
 ) -> None:
+    if output is None:
+        # Read by a program, not a person: a pipe, a file, or an agent capturing output.
+        output = "table" if sys.stdout.isatty() else "json"
     if output not in ("table", "json"):
         raise Usage("--output must be `table` or `json`")
     ctx.obj = State(
@@ -150,42 +168,53 @@ def _root(
     _state.current = ctx.obj
 
 
-# Top-level verbs (no noun): the ones people type most.
-app.command("login")(auth.login)
-app.command("logout")(auth.logout)
-app.command("whoami")(auth.whoami)
-app.command("signup")(auth.signup)
-app.command("configure")(auth.configure)
-app.command("use")(context.use)
-app.command("status")(context.status)
-app.command("diff")(diffmerge.diff)
-app.command("merge")(diffmerge.merge)
-app.command("promote")(env.promote)
-app.command("rollback")(env.rollback)
-app.command("export")(export.export)
+# Top-level verbs (no noun): the ones people type most, each with its reference page.
+_VERBS: list[tuple[str, Callable[..., Any], str]] = [
+    ("login", auth.login, "auth"),
+    ("logout", auth.logout, "auth"),
+    ("whoami", auth.whoami, "auth"),
+    ("signup", auth.signup, "auth"),
+    ("configure", auth.configure, "auth"),
+    ("use", context.use, "context"),
+    ("status", context.status, "context"),
+    ("diff", diffmerge.diff, "diff"),
+    ("merge", diffmerge.merge, "merge"),
+    ("promote", env.promote, "env"),
+    ("rollback", env.rollback, "env"),
+    ("export", export.export, "export"),
+    ("init", init.init, "init"),
+]
+for _name, _command, _page in _VERBS:
+    app.command(_name, epilog=_docs(f"commands/{_page}.md"))(_command)
 
-# Nouns.
-app.add_typer(auth.profile_app, name="profile")
-app.add_typer(account.app, name="account")
-app.add_typer(member.app, name="member")
-app.add_typer(invite.app, name="invite")
-app.add_typer(user.app, name="user")
-app.add_typer(project.app, name="project")
-app.add_typer(role.app, name="role")
-app.add_typer(ref.app, name="ref")
-app.add_typer(branch.app, name="branch")
-app.add_typer(tag.app, name="tag")
-app.add_typer(type_.app, name="type")
-app.add_typer(trait.app, name="trait")
-app.add_typer(entry.app, name="entry")
-app.add_typer(pin.app, name="pin")
-app.add_typer(asset.app, name="asset")
-app.add_typer(env.app, name="env")
-app.add_typer(tier.app, name="tier")
-app.add_typer(key.app, name="key")
-app.add_typer(token.app, name="token")
-app.add_typer(webhook.app, name="webhook")
-app.add_typer(preview.app, name="preview")
+# Nouns. `coho <noun> --help` and `coho <noun> <verb> --help` both name the noun's page.
+for _name, _sub, _page in [
+    ("profile", auth.profile_app, "auth"),
+    ("account", account.app, "account"),
+    ("member", member.app, "member"),
+    ("invite", invite.app, "invite"),
+    ("user", user.app, "user"),
+    ("project", project.app, "project"),
+    ("role", role.app, "role"),
+    ("ref", ref.app, "ref"),
+    ("branch", branch.app, "branch"),
+    ("tag", tag.app, "tag"),
+    ("type", type_.app, "type"),
+    ("trait", trait.app, "trait"),
+    ("entry", entry.app, "entry"),
+    ("pin", pin.app, "pin"),
+    ("asset", asset.app, "asset"),
+    ("env", env.app, "env"),
+    ("tier", tier.app, "tier"),
+    ("key", key.app, "key"),
+    ("token", token.app, "token"),
+    ("webhook", webhook.app, "webhook"),
+    ("preview", preview.app, "preview"),
+]:
+    _link = _docs(f"commands/{_page}.md")
+    for _info in _sub.registered_commands:
+        _info.epilog = _info.epilog or _link
+    app.add_typer(_sub, name=_name, epilog=_link)
 
 
 def _exit_code(exc: CohoError) -> int:
