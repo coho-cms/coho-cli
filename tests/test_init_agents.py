@@ -1,4 +1,8 @@
-"""`coho init --agents`: COHO.md from the live project, and the pointers to it."""
+"""`coho init --agents`: COHO.md from the live project, and the pointers to it.
+
+⚠️ Every file read and written here names UTF-8: Windows' default is cp1252, which reads
+the `…` COHO.md holds as three other characters.
+"""
 
 from __future__ import annotations
 
@@ -34,7 +38,7 @@ def test_coho_md_describes_the_project_and_both_pointers_are_created(run: Run, r
     out, _ = _init(run, repo)
     assert "Created COHO.md" in out and "Created AGENTS.md" in out and "Created CLAUDE.md" in out
 
-    coho = (repo / "COHO.md").read_text()
+    coho = (repo / "COHO.md").read_text(encoding="utf-8")
     # The ids, recorded so the next run is the same project on any machine.
     assert coho.startswith('<!-- coho-agents: {"url": ')
     assert f'"account": "{ACCOUNT}", "project": "{PROJECT}", "ref": "dev"' in coho
@@ -58,25 +62,25 @@ def test_coho_md_describes_the_project_and_both_pointers_are_created(run: Run, r
     # Nobody is named: a person's credential is theirs, not the repository's.
     assert "ada@acme.example" not in coho
 
-    agents = (repo / "AGENTS.md").read_text()
+    agents = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert agents.startswith(_agents.START) and "@COHO.md" in agents
-    assert (repo / "CLAUDE.md").read_text() == "@AGENTS.md\n"
+    assert (repo / "CLAUDE.md").read_text(encoding="utf-8") == "@AGENTS.md\n"
 
 
 def test_running_again_changes_nothing_and_check_agrees(run: Run, repo: Path) -> None:
     run("use", "acme", PROJECT)
     _init(run, repo)
-    before = {p.name: p.read_text() for p in repo.iterdir()}
+    before = {p.name: p.read_text(encoding="utf-8") for p in repo.iterdir()}
     out, _ = _init(run, repo)
     assert "Created" not in out and "Updated" not in out
-    assert {p.name: p.read_text() for p in repo.iterdir()} == before
+    assert {p.name: p.read_text(encoding="utf-8") for p in repo.iterdir()} == before
     _init(run, repo, "--check")
 
     # A hand edit is drift: --check fails and names the file, and writes nothing.
-    (repo / "COHO.md").write_text(before["COHO.md"] + "\nhand-written\n")
+    (repo / "COHO.md").write_text(before["COHO.md"] + "\nhand-written\n", encoding="utf-8")
     _, err = _init(run, repo, "--check", expect=1)
     assert "out of date: COHO.md" in " ".join(err.split())
-    assert "hand-written" in (repo / "COHO.md").read_text()
+    assert "hand-written" in (repo / "COHO.md").read_text(encoding="utf-8")
 
 
 def test_the_block_merges_into_an_agents_md_without_touching_the_rest(run: Run, repo: Path) -> None:
@@ -86,7 +90,7 @@ def test_the_block_merges_into_an_agents_md_without_touching_the_rest(run: Run, 
         "<!-- END:nextjs-agent-rules -->\r\n\r\nOur own notes.\r\n"
     )
     (repo / "AGENTS.md").write_bytes(theirs.encode())
-    (repo / "CLAUDE.md").write_text("@AGENTS.md\n")
+    (repo / "CLAUDE.md").write_text("@AGENTS.md\n", encoding="utf-8")
     out, _ = _init(run, repo)
     assert "Updated AGENTS.md" in out and "Unchanged CLAUDE.md" in out
     merged = (repo / "AGENTS.md").read_bytes().decode()
@@ -104,9 +108,9 @@ def test_a_claude_md_on_its_own_takes_the_block_and_no_agents_md_appears(
     run: Run, repo: Path
 ) -> None:
     run("use", "acme", PROJECT)
-    (repo / "CLAUDE.md").write_text("# House rules\n\nBe brief.\n")
+    (repo / "CLAUDE.md").write_text("# House rules\n\nBe brief.\n", encoding="utf-8")
     _init(run, repo)
-    claude = (repo / "CLAUDE.md").read_text()
+    claude = (repo / "CLAUDE.md").read_text(encoding="utf-8")
     assert claude.startswith("# House rules\n\nBe brief.\n\n" + _agents.START)
     assert not (repo / "AGENTS.md").exists()
 
@@ -115,11 +119,11 @@ def test_an_agents_md_that_claude_md_does_not_import_is_pointed_at_from_both(
     run: Run, repo: Path
 ) -> None:
     run("use", "acme", PROJECT)
-    (repo / "AGENTS.md").write_text("For every agent.\n")
-    (repo / "CLAUDE.md").write_text("For Claude only.\n")
+    (repo / "AGENTS.md").write_text("For every agent.\n", encoding="utf-8")
+    (repo / "CLAUDE.md").write_text("For Claude only.\n", encoding="utf-8")
     _init(run, repo)
-    assert _agents.START in (repo / "AGENTS.md").read_text()
-    assert _agents.START in (repo / "CLAUDE.md").read_text()
+    assert _agents.START in (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert _agents.START in (repo / "CLAUDE.md").read_text(encoding="utf-8")
 
 
 def test_the_project_comes_from_coho_md_then_codegen_config_then_the_context(
@@ -127,10 +131,11 @@ def test_the_project_comes_from_coho_md_then_codegen_config_then_the_context(
 ) -> None:
     # Nothing saved, but @coho-cms/codegen's config names the project.
     (repo / "coho.config.json").write_text(
-        json.dumps({"url": "https://ignored.example", "account": ACCOUNT, "project": PROJECT})
+        json.dumps({"url": "https://ignored.example", "account": ACCOUNT, "project": PROJECT}),
+        encoding="utf-8",
     )
     _, err = _init(run, repo)
-    assert "Marketing site" in (repo / "COHO.md").read_text()
+    assert "Marketing site" in (repo / "COHO.md").read_text(encoding="utf-8")
     assert "this profile reaches" in " ".join(err.split())  # its url is not this profile's
 
     # Once COHO.md exists, it names the project, whatever the config or context say.
@@ -164,7 +169,7 @@ def test_a_project_token_records_its_role_but_never_a_person(
         "--ref",
         "dev",
     )
-    coho = (repo / "COHO.md").read_text()
+    coho = (repo / "COHO.md").read_text(encoding="utf-8")
     assert 'project token "CI deploy", role `author`' in coho
     assert "`content:write`" in coho and "Acme" in coho
 
