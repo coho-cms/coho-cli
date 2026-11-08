@@ -6,7 +6,7 @@
     {
       "name": "coho",
       "source": "./",
-      "description": "Work with Coho through the coho CLI: check what you may do, read and change content, branch, merge, and release safely."
+      "description": "Work with Coho through its MCP server or the coho CLI: check what you may do, read and change content, branch, merge, and release safely."
     }
   ]
 }

@@ -8,6 +8,14 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- The `coho` skill knows Coho's MCP server (coho-data doc 75). When tools from a server
+  named `coho` are available, it uses them for content work rather than the CLI, with a
+  table from each command to its tool. It says what to do when the connection lacks a
+  scope or needs signing in, and that every tool needs a ref, as no project has a `main`.
+  It never calls `merge`, `create_tag`, `promote`, `rollback`, or `create_version_branch`,
+  and asks before `delete_entry` and `put_type`. The CLI stays the way to `COHO.md`, roles,
+  tokens, keys, and webhooks. The plugin's descriptions now name both.
+
 - `coho login` on a machine with no browser (coho-data doc 73). `--no-browser` now means
   open the URL in any browser, anywhere, and paste back the code the sign-in's last page
   shows; before, the sign-in still came back to `localhost:8765` and could finish only on
