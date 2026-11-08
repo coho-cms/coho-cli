@@ -1,4 +1,4 @@
-"""tag: list, create."""
+"""tag: list, create, delete."""
 
 from __future__ import annotations
 
@@ -7,12 +7,10 @@ from typing import Annotated
 import typer
 from coho_management_sdk.errors import TagContentInvalid
 
-from .._output import emit_json, record, table, warn
+from .._output import emit_json, record, say, table, warn
 from .._state import EXIT_ERROR, get_state
 
-app = typer.Typer(
-    help="Tags: immutable, undeletable (branch, seq) coordinates.", no_args_is_help=True
-)
+app = typer.Typer(help="Tags: immutable (branch, seq) coordinates.", no_args_is_help=True)
 
 
 @app.command("list")
@@ -74,3 +72,19 @@ def create(
     record(state, t.raw, [("tag", t.name), ("branch", t.ref), ("at", t.at)])
     for w in t.warnings:
         warn(f"{w.code}: {w.message}")
+
+
+@app.command("delete")
+def delete(ctx: typer.Context, name: Annotated[str, typer.Argument()]) -> None:
+    """Delete a tag. Nothing can then be promoted or rolled back to it, until it is restored.
+
+    An owner can restore it (`coho ref restore`), and its name can never be used for anything
+    else. Refused while an environment is running the tag or would roll back to it.
+    """
+    state = get_state(ctx)
+    if not state.yes and not typer.confirm(
+        f"Delete tag {name}? An owner can restore it. Its name is never free for anything else."
+    ):
+        raise typer.Abort()
+    state.project().tags.delete(name)
+    say(state, f"Deleted tag {name}.")

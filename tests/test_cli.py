@@ -1098,3 +1098,79 @@ def test_a_trait_in_use_is_not_deleted(run: Run) -> None:
     assert "reaches: blogPost" in err
     out, _ = run("-y", "trait", "delete", "unused")
     assert "Deleted trait unused." in out
+
+
+def test_branch_delete_of_a_merged_branch_needs_no_second_answer(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("--yes", "branch", "delete", "feature/done")
+    assert "Deleted branch feature/done" in out
+
+
+def test_branch_delete_with_yes_needs_confirm_destructive_for_an_unmerged_branch(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("--yes", "branch", "delete", "feature/spring", expect=1)
+    assert "BRANCH_NOT_MERGED" in err
+
+    out, _ = run("--yes", "branch", "delete", "feature/spring", "--confirm-destructive")
+    assert "Deleted branch feature/spring" in out
+
+
+def test_branch_delete_of_the_trunk_is_refused_saying_why(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("--yes", "branch", "delete", "v0.0.x", expect=1)
+    assert "BRANCH_IN_USE" in err
+    assert "trunk" in err
+
+
+def test_branch_delete_forgets_the_current_ref(run: Run, home: Path) -> None:
+    run("use", "acme", PROJECT, "dev")
+    run("branch", "create", "feature/done")
+    out, _ = run("--yes", "branch", "delete", "feature/done")
+    assert "none is set" in out
+    assert Config.load(home / "config.toml").profile("test").context.ref is None
+
+
+def test_tag_delete(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("--yes", "tag", "delete", "v0.9.0")
+    assert "Deleted tag v0.9.0" in out
+
+
+def test_tag_delete_of_a_running_tag_is_refused_naming_the_environment(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("--yes", "tag", "delete", "v1.0.0", expect=1)
+    assert "TAG_IN_USE" in err
+    assert "prod" in err
+
+
+def test_ref_deleted_says_what_stands_in_the_way(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("ref", "deleted")
+    assert "feature/old" in out and "v0.8.0" in out and "needs --as" in out
+
+
+def test_ref_restore_a_branch_a_tag_and_one_with_its_name_taken(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("ref", "restore", "feature/old")
+    assert "feature/restored" in out
+    out, _ = run("ref", "restore", "v0.8.0")
+    assert "v0.8.0" in out
+
+    _, err = run("ref", "restore", "feature/taken", expect=1)
+    assert "REF_NAME_TAKEN" in err
+    out, _ = run("ref", "restore", "feature/taken", "--as", "feature/again")
+    assert "feature/again" in out
+
+
+def test_ref_restore_refuses_what_it_cannot_decide(run: Run) -> None:
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("ref", "restore", "feature/never", expect=2)
+    assert "nothing deleted" in err
+    _, err = run("ref", "restore", "feature/twice", expect=2)
+    assert "--id" in err
+    out, _ = run("ref", "restore", "feature/twice", "--id", "d4")
+    assert "feature/restored" in out
+    _, err = run("ref", "restore", "v0.8.0", "--as", "v0.8.1", expect=2)
+    assert "--as is for branches" in err
+    _, err = run("ref", "restore", "feature/child", expect=1)
+    assert "RESTORE_BLOCKED" in err

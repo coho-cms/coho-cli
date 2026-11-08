@@ -1,7 +1,7 @@
 ---
 name: coho
 description: Work with Coho, the branch-native headless CMS, through its MCP server's tools or its `coho` command line. Use when the user wants to read or change Coho content (types, entries, assets), branch, diff, merge, tag, or promote a release, manage projects, roles, delivery keys, project tokens or webhooks, or asks what they are able to do in Coho.
-allowed-tools: Bash(coho status *) Bash(coho whoami *) Bash(coho --help *) Bash(coho --version *) Bash(coho role ladder *) Bash(coho account list *) Bash(coho account show *) Bash(coho project list *) Bash(coho project show *) Bash(coho ref list *) Bash(coho ref show *) Bash(coho ref describe *) Bash(coho branch list *) Bash(coho tag list *) Bash(coho type list *) Bash(coho type get *) Bash(coho trait list *) Bash(coho trait get *) Bash(coho entry list *) Bash(coho entry get *) Bash(coho entry history *) Bash(coho entry references *) Bash(coho asset list *) Bash(coho asset get *) Bash(coho env list *) Bash(coho env show *) Bash(coho env history *) Bash(coho diff *)
+allowed-tools: Bash(coho status *) Bash(coho whoami *) Bash(coho --help *) Bash(coho --version *) Bash(coho role ladder *) Bash(coho account list *) Bash(coho account show *) Bash(coho project list *) Bash(coho project show *) Bash(coho ref list *) Bash(coho ref show *) Bash(coho ref describe *) Bash(coho ref deleted *) Bash(coho branch list *) Bash(coho tag list *) Bash(coho type list *) Bash(coho type get *) Bash(coho trait list *) Bash(coho trait get *) Bash(coho entry list *) Bash(coho entry get *) Bash(coho entry history *) Bash(coho entry references *) Bash(coho asset list *) Bash(coho asset get *) Bash(coho env list *) Bash(coho env show *) Bash(coho env history *) Bash(coho diff *)
 ---
 
 # Working with Coho
@@ -91,6 +91,7 @@ What each permission allows:
 | `release:tag` | cut tags |
 | `promote:dev`, `promote:qa`, `promote:stage`, `promote:prod` | point that tier's environments at a tag or ref, and roll them back |
 | `branch:create_version` | create a version branch such as `v1.1.x` |
+| `release:delete` | delete tags |
 | owner only (`*`) | grant roles, delivery keys, project tokens, webhooks, workflow settings |
 
 Do not attempt what the permissions rule out: say what is missing and who can grant it
@@ -180,7 +181,7 @@ coho diff v0.0.x                        # what merging into the trunk would do
 
 ## 6. Releasing is the user's job
 
-**Never run `coho merge`, `coho tag create`, `coho promote` or `coho rollback`**, or call
+**Never run `coho merge`, `coho tag create`, `coho tag delete`, `coho promote` or `coho rollback`**, or call
 the MCP tools `merge`, `create_tag`, `promote`, `rollback`, or `create_version_branch`, even
 when the role and the connection allow them. They decide what is released and what a live website serves.
 When the work is ready, give the user the commands to run themselves, for example:
@@ -202,6 +203,8 @@ for a yes:
 
 - any `delete`, `revoke`, `remove`, `unset`, or `--yes`, which skips a confirmation, and
   the MCP tool `delete_entry`
+- `coho ref restore`, which brings a deleted branch or tag back: a restored tag can be
+  promoted to again
 - changing a content type, with `coho type put` or the MCP tool `put_type`
 - `coho role grant` and `revoke`, and `coho member role` and `remove`
 - `coho key create`, `coho token create`, `coho webhook create` and `rotate`: each prints

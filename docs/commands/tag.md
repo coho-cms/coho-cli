@@ -1,7 +1,7 @@
 # tag
 
-A tag is an immutable, undeletable `(branch, seq)` coordinate: at once a GC root, a
-snapshot cache key and the rollback record.
+A tag is an immutable `(branch, seq)` coordinate: at once a GC root, a snapshot cache key
+and the rollback record.
 
 ## `coho tag list`
 
@@ -28,7 +28,20 @@ version convention is yours to enforce.
 Warnings on stderr: `PENDING_FORWARD_PORT` — the branch holds nodes its successor
 does not; tag time is when that omission becomes expensive.
 
-There is no `tag delete`.
+## `coho tag delete NAME`
+
+`DELETE …/tags/NAME`. Requires `release:delete`, which `release_manager` and `owner` hold;
+`release:tag` is not enough. The tag stops resolving, so nothing can be promoted or rolled back
+to it, and delivery stops serving it within seconds. An owner can bring it back with
+[`coho ref restore`](ref.md). Branches cut from the tag are not affected.
+
+**The name can never be used for anything else.** A tag read by name is cached as immutable for
+a year, so a browser, a server, or an SDK may hold the release under it. Cutting a tag of that
+name is refused with `REF_NAME_TAKEN`.
+
+Refusals: `TAG_IN_USE` while an environment is running the tag or would roll back to it, naming
+the environments. To delete one `prod` would roll back to, promote `prod` forward first.
+`TAG_STILL_BUILDING`, `UNDER_LEGAL_HOLD`, `REF_NOT_FOUND`, `FORBIDDEN`.
 
 ## Validating a release
 

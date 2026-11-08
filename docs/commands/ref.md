@@ -45,3 +45,22 @@ Sets the standing description: what a branch is for, or release notes on a tag. 
 name and a tag's coordinate stay immutable. Who may describe a ref is who may have
 made it: `content:write` for a branch, `release:tag` for a tag, `promote:<tier>` for
 an environment. Blank or `--clear` clears it.
+
+## `coho ref deleted`
+
+`GET …/deleted-refs`. Every deleted branch and tag, newest first, with what it was, when it went,
+and anything that stands in the way of restoring it. Requires `ref:restore`, which a project owner
+and an organization admin hold. `-o json` adds who deleted it and its description.
+
+## `coho ref restore NAME [--as NEW] [--id ID]`
+
+`POST …/deleted-refs/…/restore`. Brings back a deleted branch or tag. Requires `ref:restore`, and a
+person: a project token is refused.
+
+A branch comes back with its content, its description, and its status. If its name has been used
+since, give it another with `--as`. A tag comes back under its own name, which nothing else has
+held, and can be promoted to once its snapshot has rebuilt. `--id` chooses between deleted branches
+that share a name.
+
+Refusals: `RESTORE_BLOCKED` while the branch it was cut from is deleted too, or if `--as` would not
+make a branch of the same kind. `REF_NAME_TAKEN`, `REF_NOT_FOUND`, `FORBIDDEN`.

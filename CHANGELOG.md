@@ -8,6 +8,13 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho branch delete` and `coho tag delete` (coho-data doc 76). A deleted branch's name is free
+  again; a deleted tag's never is, since a release may be cached under it for a year. A branch
+  that has not been merged asks a second time, or takes `--confirm-destructive` with `--yes`.
+  `coho branch list` shows `changed` for a branch merged and written to since.
+- `coho ref deleted` and `coho ref restore` (coho-data doc 77): see what has been deleted, and
+  bring it back. An owner's or an organization admin's.
+
 - The `coho` skill knows Coho's MCP server (coho-data doc 75). When tools from a server
   named `coho` are available, it uses them for content work rather than the CLI, with a
   table from each command to its tool. It says what to do when the connection lacks a

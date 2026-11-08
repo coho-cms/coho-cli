@@ -22,7 +22,7 @@ shows all of them; `kind` says which.
 |---|---|---|---|
 | `version_branch` | A line of releases. The trunk is `v0.0.x`. Only version branches can be tagged. | tip moves with writes | yes |
 | `feature_branch` | Work in progress, branched from a version branch or a tag. Merged back. | tip moves with writes | yes |
-| `tag` | An immutable `(branch, seq)` coordinate. Undeletable. | never | no |
+| `tag` | An immutable `(branch, seq)` coordinate. Its name is never reused, even once deleted. | never | no |
 | `environment` | A name that points at a tag (snapshot tier) or a branch tip (live tier). | on every promotion | no |
 
 Branch names contain slashes (`feature/pricing`); the CLI encodes them.
@@ -89,7 +89,7 @@ govern content:
 | `viewer` | `content:read` |
 | `author` | + `content:write`, `branch:create` |
 | `maintainer` | + `merge`, `release:tag`, `promote:dev`, `promote:qa` |
-| `release_manager` | + `promote:stage`, `promote:prod`, `branch:create_version` |
+| `release_manager` | + `promote:stage`, `promote:prod`, `branch:create_version`, `release:delete` |
 | `owner` | all: `role:grant`, `delivery:keys`, `workflow:write` |
 
 An account admin holds implied `owner` on every project in the account, so a project

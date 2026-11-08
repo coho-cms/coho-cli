@@ -34,7 +34,7 @@ Prints the seeded ladder:
 | `viewer` | `content:read` |
 | `author` | + `content:write`, `branch:create`, `promote:preview` |
 | `maintainer` | + `merge`, `release:tag`, `promote:dev`, `promote:qa` |
-| `release_manager` | + `promote:stage`, `promote:prod`, `branch:create_version` |
+| `release_manager` | + `promote:stage`, `promote:prod`, `branch:create_version`, `release:delete` |
 | `owner` | all, including `role:grant`, `delivery:keys`, `workflow:write` |
 
 There is no "a project must keep an owner" rule: an account admin can always repair a
