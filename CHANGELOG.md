@@ -65,6 +65,12 @@ All notable changes to `coho-cli`. The format follows
 - `coho login`, `coho signup`, and `coho invite accept` print the URL when there is no
   browser to open, or opening one fails, rather than saying nothing.
 
+### Fixed
+
+- Needs `coho-management-sdk` 2026.2.3a2, which keeps out httpx 1.0's pre-releases. With
+  those, an install that allowed pre-releases failed with a `TypeError` on every command
+  that calls the API.
+
 ## [2026.2.0] — 2026-11-03
 
 The first release out of alpha. Everything below shipped across the 2026.1.0 alphas.
