@@ -24,13 +24,13 @@ classifiers = [
 ]
 dependencies = [
     # The SDK of the same version line: every Coho repository releases one shared
-    # version (2026.2.1 now). A pre-release floor admits pre-releases, which
-    # installers skip otherwise: 2026.2.1a1, the dev builds after it
-    # (2026.2.1a2.devN), the betas and release candidates, then 2026.2.1 and its
-    # fixes. `<2026.3` keeps out 2026.3 and its pre-releases. 2026.2.1a2 is the
-    # first with describe_token, permissions_for and credential_source (coho status,
-    # coho init --agents); 2026.2.1a1 the first with login(mode="paste").
-    "coho-management-sdk>=2026.2.1,<2026.3",
+    # version (2026.2.3 now). A pre-release floor admits pre-releases, which
+    # installers skip otherwise: 2026.2.3a1, the dev builds after it
+    # (2026.2.3a2.devN), the betas and release candidates, then 2026.2.3 and its
+    # fixes. `<2026.3` keeps out 2026.3 and its pre-releases. 2026.2.3a1 is the
+    # first with branches.delete, tags.delete, refs.restore_branch and their errors,
+    # which the CLI imports at startup, so an older SDK fails it on every command.
+    "coho-management-sdk>=2026.2.3a1,<2026.3",
     "typer>=0.12",
     "rich>=13.7",
     "keyring>=25",
