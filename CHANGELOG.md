@@ -6,6 +6,11 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+## [2026.2.3] — 2026-11-09
+
+Everything since 2026.2.0, so this includes what shipped as 2026.2.1, which had no section of
+its own.
+
 ### Added
 
 - `coho branch delete` and `coho tag delete` (coho-data doc 76). A deleted branch's name is free
@@ -67,7 +72,7 @@ All notable changes to `coho-cli`. The format follows
 
 ### Fixed
 
-- Needs `coho-management-sdk` 2026.2.3a2, which keeps out httpx 1.0's pre-releases. With
+- Needs `coho-management-sdk` 2026.2.3, which keeps out httpx 1.0's pre-releases. With
   those, an install that allowed pre-releases failed with a `TypeError` on every command
   that calls the API.
 
@@ -269,6 +274,7 @@ Initial version.
   precondition worth retrying (4) and not-found (5).
 - A local project registry, because the server has no project listing yet.
 
-[Unreleased]: https://github.com/coho-cms/coho-cli/compare/v2026.2.0...HEAD
+[Unreleased]: https://github.com/coho-cms/coho-cli/compare/release-v2026.2.3...HEAD
+[2026.2.3]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.3
 [2026.2.0]: https://github.com/coho-cms/coho-cli/releases/tag/v2026.2.0
 [0.1.0]: https://github.com/coho-cms/coho-cli/releases/tag/v0.1.0
