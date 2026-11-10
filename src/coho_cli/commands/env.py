@@ -142,12 +142,19 @@ def unset(
 
 
 @app.command("delete")
-def delete(ctx: typer.Context, name: Annotated[str, typer.Argument()]) -> None:
+def delete(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument()],
+    reason: Annotated[
+        str | None,
+        typer.Option("--reason", "-m", help="Why; kept in its history after the word deleted."),
+    ] = None,
+) -> None:
     """Remove an environment. Auditable: the removal stays in its history."""
     state = get_state(ctx)
     if not state.yes and not typer.confirm(f"Delete environment {name}?"):
         raise typer.Abort()
-    state.project().environments.delete(name)
+    state.project().environments.delete(name, reason=reason)
     say(state, f"Deleted environment {name}.")
 
 

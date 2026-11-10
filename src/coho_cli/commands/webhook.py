@@ -1,11 +1,13 @@
 """webhook: the endpoints Coho calls when something happens in the project, and their log.
 
 Owners only (coho-data doc 70). Every request is signed with the webhook's own secret, which
-`create` and `rotate` print once.
+`create` and `rotate` print once. A GitHub webhook (`create --github owner/name`) instead
+starts an Actions workflow through `repository_dispatch`, with a token, and signs nothing.
 """
 
 from __future__ import annotations
 
+import sys
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -51,6 +53,26 @@ Headers = Annotated[
 Description = Annotated[
     str | None, typer.Option("--description", help="What it is for, up to 500 characters.")
 ]
+Token = Annotated[
+    str | None,
+    typer.Option(
+        "--token",
+        metavar="TOKEN",
+        help="For a GitHub webhook: a token that can write to the repository's contents. "
+        "`-` reads it from standard input, which keeps it out of your shell history. Never "
+        "shown again.",
+    ),
+]
+
+
+def _token(value: str | None) -> str | None:
+    """``-`` is standard input, so a token can be piped in rather than typed on the line."""
+    if value != "-":
+        return value
+    token = sys.stdin.read().strip()
+    if not token:
+        raise Usage("--token - read nothing from standard input")
+    return token
 
 
 def _state(ctx: typer.Context) -> State:
@@ -68,7 +90,7 @@ def list_(ctx: typer.Context) -> None:
         state,
         hooks.raw,
         ["ID", "HOST", "EVENTS", "STATE", "LAST 24H"],
-        [(w.id, w.host, w.events, _standing(w), _day(w)) for w in hooks.webhooks],
+        [(w.id, _where(w), w.events, _standing(w), _day(w)) for w in hooks.webhooks],
         empty="(no webhooks)",
         whole=["ID"],
     )
@@ -89,7 +111,6 @@ def events(ctx: typer.Context) -> None:
 @app.command("create")
 def create(
     ctx: typer.Context,
-    url: Annotated[str, typer.Option("--url", help="Where to send: HTTPS, on a public address.")],
     events: Annotated[
         list[str],
         typer.Option(
@@ -100,6 +121,20 @@ def create(
             "`coho webhook events` lists them.",
         ),
     ],
+    url: Annotated[
+        str | None, typer.Option("--url", help="Where to send: HTTPS, on a public address.")
+    ] = None,
+    github: Annotated[
+        str | None,
+        typer.Option(
+            "--github",
+            metavar="OWNER/NAME",
+            help="Start this repository's GitHub Actions workflows instead of calling a URL: "
+            "each event is a repository_dispatch whose event_type is the event's type. Needs "
+            "--token.",
+        ),
+    ] = None,
+    token: Token = None,
     refs: Refs = None,
     headers: Headers = None,
     description: Description = None,
@@ -111,10 +146,30 @@ def create(
         ),
     ] = False,
 ) -> None:
-    """Add a webhook. ⚠️ Its signing secret is printed once, now, and never again."""
+    """Add a webhook. ⚠️ Its signing secret is printed once, now, and never again.
+
+    With --github and --token in place of --url, it starts a GitHub Actions workflow
+    through repository_dispatch instead, and has no secret, since GitHub checks the token.
+    A webhook's kind is fixed once made.
+    """
+    if github is None and url is None:
+        raise Usage("say where to send: --url, or --github OWNER/NAME with --token")
+    if github is not None and (url is not None or headers):
+        raise Usage(
+            "a GitHub webhook takes --github and --token, and Coho works out its URL and "
+            "headers from them; leave out --url and --header"
+        )
+    if github is None and token is not None:
+        raise Usage("--token is for a GitHub webhook; pass --github OWNER/NAME too")
+    if github is not None and token is None:
+        raise Usage(
+            "a GitHub webhook needs --token: one that can write to the repository's contents"
+        )
     state = _state(ctx)
     created = state.project().webhooks.create(
         url=url,
+        repository=github,
+        token=_token(token),
         events=events,
         refs=refs or None,
         headers=_headers(headers) if headers else None,
@@ -122,6 +177,18 @@ def create(
         enabled=not disabled,
     )
     w = created.webhook
+    if created.secret is None:
+        if state.output == "json":
+            emit_json(created.raw)
+            return
+        _show(state, w)
+        say(
+            state,
+            f"Dispatches to {w.repository}: a workflow listens with on.repository_dispatch.types "
+            f"and reads github.event.client_payload. `coho webhook test {w.id}` sends a ping, "
+            "and its delivery shows whether GitHub took the token.",
+        )
+        return
     secret_once(
         state,
         created.raw,
@@ -189,6 +256,23 @@ def update(
     clear_headers: Annotated[
         bool, typer.Option("--clear-headers", help="Send no custom headers.")
     ] = False,
+    github: Annotated[
+        str | None,
+        typer.Option(
+            "--github",
+            metavar="OWNER/NAME",
+            help="For a GitHub webhook: the repository to dispatch to instead.",
+        ),
+    ] = None,
+    token: Annotated[
+        str | None,
+        typer.Option(
+            "--token",
+            metavar="TOKEN",
+            help="For a GitHub webhook: a new token, replacing the one it has; `-` reads it "
+            "from standard input. This is how its credential is rotated.",
+        ),
+    ] = None,
     description: Annotated[
         str | None, typer.Option("--description", help="What it is for; '' clears it.")
     ] = None,
@@ -207,15 +291,17 @@ def update(
         raise Usage("pass --ref or --all-refs, not both")
     if headers and clear_headers:
         raise Usage("pass --header or --clear-headers, not both")
-    nothing = (url, events, refs, headers, description, enabled)
+    nothing = (url, events, refs, headers, description, enabled, github, token)
     if all(v is None or v == [] for v in nothing) and not all_refs and not clear_headers:
         raise Usage(
             "say what to change: --url, --event, --ref, --all-refs, --header, --clear-headers, "
-            "--description, --enable, or --disable"
+            "--github, --token, --description, --enable, or --disable"
         )
     state = _state(ctx)
     changed = state.project().webhooks.update(
         webhook_id,
+        repository=github,
+        token=_token(token),
         url=url,
         events=events or None,
         refs=[] if all_refs else (refs or None),
@@ -240,7 +326,10 @@ def delete(ctx: typer.Context, webhook_id: WebhookId) -> None:
 
 @app.command("rotate")
 def rotate(ctx: typer.Context, webhook_id: WebhookId) -> None:
-    """A new signing secret, printed once. The previous one goes on signing beside it for a day."""
+    """A new signing secret, printed once. The previous one goes on signing beside it for a day.
+
+    A GitHub webhook has no secret: replace its token with `coho webhook update ID --token -`.
+    """
     state = _state(ctx)
     rotated = state.project().webhooks.rotate_secret(webhook_id)
     until = rotated.previous_secret_until
@@ -409,13 +498,17 @@ def redeliver(
 
 
 def _show(state: State, w: Webhook) -> None:
+    target: list[tuple[str, object]] = (
+        [("github", w.repository)]
+        if w.kind == "github_dispatch"
+        else [("url", w.url or w.host), ("headers", w.headers)]
+    )
     pairs: list[tuple[str, object]] = [
         ("id", w.id),
-        ("url", w.url or w.host),
+        *target,
         ("description", w.description),
         ("events", w.events),
         ("refs", w.refs or "(all)"),
-        ("headers", w.headers),
         ("state", _standing(w)),
     ]
     if w.previous_secret_until:
@@ -427,6 +520,11 @@ def _show(state: State, w: Webhook) -> None:
         ("updated", w.updated_at),
     ]
     record(state, w.raw, pairs)
+
+
+def _where(w: Webhook) -> str:
+    """Its host, or for a GitHub webhook the repository it dispatches to."""
+    return f"github:{w.repository}" if w.kind == "github_dispatch" and w.repository else w.host
 
 
 def _standing(w: Webhook) -> str:

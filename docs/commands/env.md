@@ -53,10 +53,11 @@ rather than undoing their work. `NO_PREVIOUS_TARGET` if there is nothing to go b
 Points the environment at nothing — a reachable state; `qa`, `stage` and `prod` start
 there.
 
-## `coho env delete NAME`
+## `coho env delete NAME [--reason TEXT]`
 
 Allowed, unlike a tag: tags are the record, environments are the thing that moves.
-The removal appears in the history rather than vanishing from it. Asks; `-y` skips.
+The removal appears in the history rather than vanishing from it, with `--reason` (`-m`)
+after the word `deleted`. Asks; `-y` skips.
 
 ## `coho env history NAME [--limit N] [--offset N]`
 

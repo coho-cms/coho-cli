@@ -208,7 +208,11 @@ for a yes:
 - changing a content type, with `coho type put` or the MCP tool `put_type`
 - `coho role grant` and `revoke`, and `coho member role` and `remove`
 - `coho key create`, `coho token create`, `coho webhook create` and `rotate`: each prints
-  a secret **once**. Tell the user to store it, and do not repeat it in your reply.
+  a secret **once**. Tell the user to store it, and do not repeat it in your reply. A
+  GitHub webhook (`--github OWNER/NAME`) prints none, but takes the user's GitHub token:
+  have them pipe it in with `--token -` rather than handing it to you.
+- `coho entry put --slug`, which renames an entry: links survive, but anything that fetches
+  it by its old slug stops finding it
 - `--force`, `--confirm-destructive`, or anything that overwrites someone else's change
 
 Reading, listing, `status`, `diff`, and changing content on a feature branch the user

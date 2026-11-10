@@ -357,6 +357,28 @@ def test_preview_entries_says_where_the_next_page_starts(run: Run, bff: FakeBff)
     assert json.loads(out)["hasMore"] is True
 
 
+def test_entry_put_slug_renames_alone_or_with_a_set(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    out, _ = run("-o", "json", "entry", "put", ENTRY, "--slug", "hello-again")
+    assert json.loads(out)["slug"] == "hello-again"
+    assert bff.last().get_json()["slug"] == "hello-again"
+    assert bff.last().headers["If-Match"] == '"v1"'
+    run("entry", "put", ENTRY, "--set", "rank=2", "--slug", "third")
+    assert bff.last().get_json()["slug"] == "third" and bff.entry_fields["rank"] == 2
+    _, err = run("entry", "put", ENTRY, "--slug", "taken", expect=1)
+    assert "SLUG_CONFLICT" in err
+    _, err = run("entry", "put", ENTRY, expect=2)
+    assert "--slug" in err
+
+
+def test_env_delete_keeps_its_reason(run: Run, bff: FakeBff) -> None:
+    run("use", "acme", PROJECT, "dev")
+    run("--yes", "env", "delete", "qa2", "-m", "Folded into qa")
+    assert bff.deleted_environments == [("qa2", "Folded into qa")]
+    run("--yes", "env", "delete", "qa3")
+    assert bff.deleted_environments[-1] == ("qa3", None)
+
+
 def test_entry_set_is_read_modify_write(run: Run, bff: FakeBff) -> None:
     run("use", "acme", PROJECT, "dev")
     out, _ = run(

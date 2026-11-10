@@ -69,7 +69,7 @@ taken as a string otherwise:
 Refusals: `VALIDATION_FAILED` (each `errors[]` item printed as `path: message`),
 `SLUG_CONFLICT`, `BRANCH_NOT_WRITABLE` (a tag or environment), `FORBIDDEN`.
 
-## `coho entry put ID [-f FIELDS] [--set …] [--if-match ETAG] [--force]`
+## `coho entry put ID [-f FIELDS] [--set …] [--slug SLUG] [--if-match ETAG] [--force]`
 
 Two modes:
 
@@ -79,7 +79,16 @@ Two modes:
   or `--force` (reads the current ETag and overwrites). Without either, the CLI stops
   with `PRECONDITION_REQUIRED` before sending anything.
 
-The slug carries forward; an update sends content, not identity.
+The slug carries forward; a `_slug` in the fields renames nothing. To rename, pass
+`--slug`, alone or with either mode: the rename and the rest of the save are one version.
+
+```bash
+coho entry put @hello-world --slug hello-again
+```
+
+A slug another entry on the ref holds is `SLUG_CONFLICT`, and a singleton's entry keeps its
+fixed slug. Links to the entry are by id, so they keep working; `@hello-world` and anything
+else that looks it up by slug needs the new one.
 
 ## `coho entry delete ID [--if-match ETAG] [--force]`
 

@@ -68,19 +68,46 @@ output alone; with `-o json` the whole `{secret, webhook}` response is printed.
   (`WEBHOOK_HEADER_RESERVED`).
 - `--disabled` makes it turned off; `coho webhook update ID --enable` turns it on.
 
+## `coho webhook create --github OWNER/NAME --token TOKEN --event TYPE [--event …] [--ref PATTERN …] [--description TEXT] [--disabled]`
+
+A webhook that starts a GitHub Actions workflow through GitHub's `repository_dispatch` API,
+with no relay in between (`kind: github_dispatch`, coho-data doc 70 WH-17). Each event is a
+dispatch whose `event_type` is the event's type and whose `client_payload` is the whole event,
+so a workflow picks events with `on.repository_dispatch.types` and reads
+`github.event.client_payload.data`:
+
+```bash
+gh auth token | coho webhook create --github acme/site --token - \
+  -e environment.promoted --ref prod --description "Deploy the site"
+```
+
+- `--token` is one that can write to the repository's contents: a fine-grained token with
+  **Contents: Read and write** on that repository alone. `-` reads it from standard input,
+  which keeps it out of your shell history. It is sealed and never shown again.
+- It has no signing secret, since GitHub checks the token and has no way to check a
+  signature, so nothing is printed once; the webhook is printed as `show` prints it.
+- `--url` and `--header` are refused beside `--github`: Coho works them out from the
+  repository and the token. The kind is fixed once made.
+- `coho webhook test ID` sends a `ping`, which starts only a workflow whose `types` names
+  `ping`, so its delivery in `coho webhook deliveries ID` is where to see whether GitHub took
+  the token: `204` is yes.
+
 ## `coho webhook show ID`
 
 `GET …/webhooks/{id}`: one webhook, with its full URL, its custom headers' names, its
 state, its last delivery, and, while a rotation overlaps, when the previous secret stops
 signing. Never its secret, and never a header's value.
 
-## `coho webhook update ID [--url URL] [--event TYPE …] [--ref PATTERN …] [--all-refs] [--header 'Name: value' …] [--clear-headers] [--description TEXT] [--enable | --disable]`
+## `coho webhook update ID [--url URL] [--event TYPE …] [--ref PATTERN …] [--all-refs] [--header 'Name: value' …] [--clear-headers] [--github OWNER/NAME] [--token TOKEN] [--description TEXT] [--enable | --disable]`
 
 `PATCH …/webhooks/{id}`: changes what you pass, leaves the rest, and prints the webhook.
 
 - `--event` and `--ref` replace the whole list; `--all-refs` sends every ref's events again.
 - `--header` replaces every custom header, since their values cannot be read back to merge
   with; `--clear-headers` sends none.
+- `--github` and `--token` are a GitHub webhook's, in place of `--url` and `--header`:
+  another repository, or a new token, replacing the one it has, which is how its
+  credential is rotated. `--token -` reads it from standard input.
 - `--description ''` clears the description.
 - `--enable` also clears the run of failures that turned it off. What failed while it was
   off is in its log, to send again with `redeliver`.
@@ -97,6 +124,9 @@ previous one stops signing, 24 hours on. Until then every request carries two si
 one for each secret, so a receiver can be given the new one at its own pace. Rotating again
 before then stops the previous one at once, which is how a leaked secret is answered:
 rotate twice.
+
+A GitHub webhook has no secret, so this is refused (`WEBHOOK_INVALID`); replace its token
+with `coho webhook update ID --token -` instead.
 
 ## `coho webhook test ID`
 

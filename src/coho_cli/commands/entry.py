@@ -158,29 +158,39 @@ def put(
     force: Annotated[
         bool, typer.Option("--force", help="Overwrite whatever version is current.")
     ] = False,
+    slug: Annotated[
+        str | None,
+        typer.Option(
+            "--slug",
+            help="Rename the entry, in the same version as the rest of the save. Links are by "
+            "id and keep working; @slug lookups need the new one.",
+        ),
+    ] = None,
 ) -> None:
-    """Update an entry's fields.
+    """Update an entry's fields, or rename it.
 
     With --file, the document replaces the fields wholesale and needs --if-match (or
     --force). With only --set, the current entry is read first, patched, and written
     back with its own ETag — a read-modify-write that fails with VERSION_CONFLICT if
-    somebody else wrote in between.
+    somebody else wrote in between. --slug renames it, alone or with either; a `_slug`
+    in the fields renames nothing. A slug another entry holds is SLUG_CONFLICT, and a
+    singleton's entry keeps its fixed slug.
     """
     state = get_state(ctx)
-    if file is None and not set_:
-        raise Usage("nothing to write: pass --file and/or --set")
+    if file is None and not set_ and slug is None:
+        raise Usage("nothing to write: pass --file, --set, and/or --slug")
     ref = state.ref()
     api = ref.entries
     entry_id = resolve_entry_id(ref, entry_id)
     if file is not None:
         sets = reference_ids(ref, lambda: api.get(entry_id).type, _parse_sets(set_))
         fields = _fields(file, sets)
-        e = api.put(entry_id, fields, if_match=if_match, force=force)
+        e = api.put(entry_id, fields, if_match=if_match, force=force, slug=slug)
     else:
         current = api.get(entry_id)
         for path, value in reference_ids(ref, lambda: current.type, _parse_sets(set_)):
             set_path(current.fields, path, value)
-        e = api.put(current, if_match=if_match)
+        e = api.put(current, if_match=if_match, slug=slug)
     _created_or_updated(state, e)
 
 

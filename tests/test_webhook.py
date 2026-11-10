@@ -231,3 +231,67 @@ def test_redeliver_one_or_every_failure_since(run: Run, bff: FakeBff) -> None:
     assert json.loads(out) == {"redelivered": 0}
     _, err = run("webhook", "redeliver", webhook_id, expect=2)
     assert "DELIVERY_ID" in err
+
+
+def test_a_github_webhook_has_no_secret_and_shows_its_repository(
+    run: Run, bff: FakeBff, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _use(run)
+    monkeypatch.setattr("sys.stdin", io.StringIO("ghp_from_stdin\n"))
+    out, err = run(
+        "webhook", "create", "--github", "acme/site", "--token", "-", "-e", "environment.promoted"
+    )
+    [webhook_id] = bff.webhooks
+    assert bff.last().get_json() == {
+        "events": ["environment.promoted"],
+        "enabled": True,
+        "kind": "github_dispatch",
+        "repository": "acme/site",
+        "token": "ghp_from_stdin",
+    }
+    assert "acme/site" in out and "repository_dispatch" in words(out)
+    assert "Signing secret" not in out and "shown once" not in err
+    assert "ghp_from_stdin" not in out
+    shown, _ = run("webhook", "show", webhook_id)
+    assert "github" in shown and "acme/site" in shown and "api.github.com" not in shown
+
+    run("webhook", "update", webhook_id, "--token", "ghp_new")
+    assert bff.last().get_json() == {"token": "ghp_new"}
+    assert bff.webhook_headers[webhook_id] == {"Authorization": "Bearer ghp_new"}
+    _, err = run("webhook", "rotate", webhook_id, expect=1)
+    assert "WEBHOOK_INVALID" in err and "no secret to rotate" in words(err)
+
+
+def test_a_github_webhook_in_json_is_the_whole_response(run: Run) -> None:
+    _use(run)
+    out, _ = run(
+        "-o", "json", "webhook", "create", "--github", "acme/site", "--token", "t", "-e", "*"
+    )
+    body = json.loads(out)
+    assert "secret" not in body and body["webhook"]["kind"] == "github_dispatch"
+
+
+def test_create_refuses_a_mixed_or_missing_target(run: Run) -> None:
+    _use(run)
+    _, err = run("webhook", "create", "-e", "*", expect=2)
+    assert "--github OWNER/NAME" in words(err)
+    _, err = run("webhook", "create", "--github", "a/b", "-e", "*", expect=2)
+    assert "needs --token" in words(err)
+    _, err = run(
+        "webhook",
+        "create",
+        "--github",
+        "a/b",
+        "--token",
+        "t",
+        "--url",
+        "https://x.example.com/",
+        "-e",
+        "*",
+        expect=2,
+    )
+    assert "leave out --url" in words(err)
+    _, err = run(
+        "webhook", "create", "--url", "https://x.example.com/", "--token", "t", "-e", "*", expect=2
+    )
+    assert "for a GitHub webhook" in words(err)

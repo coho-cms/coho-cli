@@ -6,6 +6,27 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+## [2026.2.4] — 2026-11-10
+
+### Added
+
+- `coho webhook create --github OWNER/NAME --token TOKEN`: a webhook that starts the
+  repository's GitHub Actions workflows through `repository_dispatch`, with each event as its
+  `client_payload` (coho-data doc 70 WH-17). It has no signing secret, so nothing is printed
+  once. `--token -` reads the token from standard input. `coho webhook update` takes
+  `--github` and `--token`, which is how its token is replaced; `show` and `list` name its
+  repository.
+- `coho entry put --slug SLUG` renames an entry, alone or with `--set` or `--file`, in the same
+  version as the save. `SLUG_CONFLICT` if another entry on the ref holds it.
+- `coho env delete NAME --reason TEXT` (`-m`): kept in the environment's history after the
+  word `deleted`.
+
+### Changed
+
+- `coho webhook create`'s `--url` is no longer required, since a GitHub webhook has none; one
+  of `--url` or `--github` is.
+- Needs `coho-management-sdk` 2026.2.4 or later.
+
 ## [2026.2.3] — 2026-11-09
 
 Everything since 2026.2.0, so this includes what shipped as 2026.2.1, which had no section of
@@ -274,7 +295,8 @@ Initial version.
   precondition worth retrying (4) and not-found (5).
 - A local project registry, because the server has no project listing yet.
 
-[Unreleased]: https://github.com/coho-cms/coho-cli/compare/release-v2026.2.3...HEAD
+[Unreleased]: https://github.com/coho-cms/coho-cli/compare/release-v2026.2.4...HEAD
+[2026.2.4]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.4
 [2026.2.3]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.3
 [2026.2.0]: https://github.com/coho-cms/coho-cli/releases/tag/v2026.2.0
 [0.1.0]: https://github.com/coho-cms/coho-cli/releases/tag/v0.1.0

@@ -51,7 +51,7 @@ jobs:
           # for the version every Coho repository is working towards, which this
           # CLI's own branch shares. Spelled out as a branch because the release tag
           # v2026.2.1 will share its name. Move it with the CLI's branch.
-          ref: refs/heads/v2026.2.3
+          ref: refs/heads/v2026.2.4
           # The library's version comes from its tags. A shallow clone has none and
           # builds 0.1.dev1, which the version range above refuses.
           fetch-depth: 0
