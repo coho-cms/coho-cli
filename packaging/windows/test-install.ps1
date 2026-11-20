@@ -49,7 +49,9 @@ $coho = (Get-Command coho -CommandType Application).Source
 Write-Host "coho resolves to $coho"
 if ((Split-Path $coho -Parent).TrimEnd('\') -ne $folder) { throw "coho resolves to $coho, not the installed one" }
 
-$reported = & coho --version
+# One string: --version prints a banner over several lines, and -notmatch on an array
+# filters it instead of answering yes or no.
+$reported = (& coho --version) -join "`n"
 Write-Host $reported
 if ($reported -notmatch [regex]::Escape("v$Version")) { throw "coho --version said '$reported', not v$Version" }
 & coho --help | Out-Null
