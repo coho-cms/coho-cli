@@ -15,6 +15,34 @@ as a dependency. The package is `coho-cli`: `coho` on PyPI is an unrelated proje
 
 `uv tool upgrade coho-cli` (or `pipx upgrade coho-cli`) moves to the newest release.
 
+## Windows, without Python
+
+Every [release](https://github.com/coho-cms/coho-cli/releases) carries a Windows installer,
+`coho-<version>-windows-x64.msi`. It brings its own Python, installs `coho` into
+`C:\Program Files\Coho CLI`, and puts that folder on the system `PATH`. It asks for
+administrator rights once. Open a new terminal afterwards, as one that is already open
+keeps its old `PATH`.
+
+Once `CohoCMS.CLI` is listed in winget, these do the same from a terminal:
+
+```powershell
+winget install CohoCMS.CLI
+winget upgrade CohoCMS.CLI
+```
+
+To upgrade without winget, install the newer MSI over the old one. Uninstall from
+**Settings › Apps › Installed apps › Coho CLI**, or with `winget uninstall CohoCMS.CLI`.
+Both remove the `PATH` entry too. Apps & features shows the version without its century:
+2026.2.4 is listed as 26.2.4.
+
+If you can't install software, `coho-<version>-windows-x64.zip` holds the same files and
+installs nothing. Unzip it anywhere and run `coho\coho.exe`, or add that folder to your own
+`PATH`.
+
+Until the installer is signed, Windows SmartScreen may stop it with *Windows protected
+your PC*. **More info › Run anyway** goes on. Check the download against the release's
+`SHA256SUMS` first, with `Get-FileHash coho-<version>-windows-x64.msi`.
+
 ## The library only
 
 ```bash

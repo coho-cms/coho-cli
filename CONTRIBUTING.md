@@ -109,3 +109,95 @@ The `publish-pypi` job authenticates as a [trusted publisher](https://docs.pypi.
 with a short-lived OIDC token, so no API token is stored anywhere, and deploys through
 the `pypi` environment, which only `v*` tags can use. Setting the repository variable
 `PUBLISH_TO_PYPI` to anything but `true` turns it off.
+
+## Windows packages
+
+On every build, CI freezes `coho` with PyInstaller (`packaging/pyinstaller/`). The
+`windows-installer` job then packages the frozen folder with `packaging/windows/build.ps1`:
+
+- `coho-<version>-windows-x64.zip`, the folder as it is;
+- `coho-<version>-windows-x64.msi`, which installs into `C:\Program Files\Coho CLI` and
+  adds that folder to the system `PATH`.
+
+`test-install.ps1` then installs the MSI on the runner, checks that `coho` resolves from
+the machine `PATH` and reports the right version, and uninstalls it. On a release tag,
+the `release` job attaches both files, plus `coho-<version>-winget-manifests.zip` from
+`winget_manifest.py`.
+
+WiX only runs on Windows, so the MSI can only be built in CI or on a Windows machine. The
+Python halves, `msi_version.py` and `winget_manifest.py`, are tested with the rest of the
+suite in `tests/test_windows_packaging.py`.
+
+### Versions and codes
+
+Windows Installer versions are `major.minor.build`, with major at most 255.
+`msi_version.py` drops the century, so 2026.2.4 installs as 26.2.4. A pre-release adds a
+fourth field, which Windows Installer ignores: 2026.2.4rc1 is 26.2.4.501. The MSI allows
+upgrades within the same version, so the final replaces its release candidate. Every
+version gets its own `ProductCode`, derived from the version string.
+
+⛔ **Never change `UPGRADE_CODE`** in `msi_version.py`, or the GUID of the `PathEntry`
+component in `coho.wxs`. The upgrade code is what makes a new MSI replace the old CLI. With
+a different one, users end up with two Coho CLIs, each holding a `PATH` entry.
+
+### WiX and its maintenance fee
+
+The MSI is built with WiX v7 (`$WixVersion` in `build.ps1`). WiX v7 runs only once its Open
+Source Maintenance Fee EULA (`wix7`) is accepted, so `build.ps1` accepts it on Coho's
+behalf. Scott agreed to that on 2026-11-19. The EULA requires sponsoring the
+[wixtoolset GitHub organization](https://github.com/sponsors/wixtoolset) once Coho's
+revenue passes US$10,000 a year: [the terms](https://docs.firegiant.com/wix/osmf/). A new
+WiX major brings a new EULA id, so read its terms before bumping `$WixVersion`.
+
+### Signing
+
+`coho.exe` and the MSI are unsigned until signing is set up. Until then SmartScreen warns
+on first run, and winget's own checks are harder to pass. Signing uses
+[Azure Artifact Signing](https://learn.microsoft.com/en-us/azure/artifact-signing/),
+formerly Trusted Signing, in the `windows-installer-signed` job. That job replaces
+`windows-installer` on release tags once it is turned on. It authenticates with OIDC,
+so no Azure secret is stored in GitHub.
+
+1. **Azure.** In a paid subscription (free and trial ones are refused), register the
+   `Microsoft.CodeSigning` resource provider. Create an Artifact Signing account. Its
+   region sets the endpoint: East US is `https://eus.codesigning.azure.net/`.
+2. **Identity validation.** In the account, request *Public* identity validation for the
+   organization. Microsoft checks the legal name, address, and registration, which can
+   take from hours to several business days. The certificates name this organization.
+3. **Certificate profile.** Once validation passes, create a *Public Trust* certificate
+   profile from it.
+4. **An identity for CI.** Register an app in Microsoft Entra ID, or create a
+   user-assigned managed identity. Add a federated credential: *GitHub Actions*,
+   organization `coho-cms`, repository `coho-cli`, entity *Environment*, name
+   `windows-signing`. On the certificate profile, give the identity the *Artifact Signing
+   Certificate Profile Signer* role.
+5. **GitHub.** Create the `windows-signing` environment, with a deployment rule that
+   allows tags matching `release-v*` and nothing else. Give it these variables (none is
+   secret): `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+   `ARTIFACT_SIGNING_ENDPOINT`, `ARTIFACT_SIGNING_ACCOUNT`, and `ARTIFACT_SIGNING_PROFILE`.
+6. **Turn it on.** Set the repository variable `WINDOWS_SIGNING` to `true`. It has to be a
+   repository variable, not an environment one, because the job's `if:` reads it before
+   any environment applies. The next release tag signs. To check without a release, tag a
+   pre-release such as `release-v2026.2.5a1`.
+
+The Basic plan is US$9.99 a month for 5,000 signatures, and each release uses two.
+
+### Submitting to winget
+
+[winget](https://github.com/microsoft/winget-pkgs) takes packages by pull request. The
+manifests name the MSI on the GitHub release by URL and SHA-256, so submit only a final
+release, after its assets are attached.
+
+1. Download `coho-<version>-winget-manifests.zip` from the release and unzip it. It holds
+   `manifests/c/CohoCMS/CLI/<version>/`.
+2. On Windows, check them: `winget validate --manifest <that folder>`. Then try an install:
+   run `winget settings --enable LocalManifestFiles` once from an elevated terminal, then
+   `winget install --manifest <that folder>`.
+3. Fork `microsoft/winget-pkgs`, copy the folder to the same path in the fork, and open a
+   pull request with the PR template's checklist filled in. Bots install the package in a
+   sandbox and scan it, and a moderator merges it, usually within a few days. Watch the
+   pull request for questions from the bots.
+
+The first pull request fixes the identifier `CohoCMS.CLI` for good. Later versions repeat
+the same steps with a new folder. Automating that submission from the `release` job, with
+`wingetcreate` or `komac` and a token for a fork, is not built yet.

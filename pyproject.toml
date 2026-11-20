@@ -102,7 +102,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "tests"]
+files = ["src", "tests", "packaging/windows"]
+# The Windows packaging scripts are plain modules beside each other, imported by name.
+mypy_path = "packaging/windows"
 
 [[tool.mypy.overrides]]
 module = ["pytest_httpserver.*", "werkzeug.*", "keyring.*"]
@@ -110,4 +112,6 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# tests/test_windows_packaging.py imports the packaging scripts by name.
+pythonpath = ["packaging/windows"]
 addopts = "-q"

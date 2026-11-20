@@ -6,6 +6,17 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A Windows installer on every release, `coho-<version>-windows-x64.msi`. It installs the
+  standalone `coho` into `C:\Program Files\Coho CLI`, adds that folder to the system `PATH`,
+  and removes both on uninstall. CI installs it, runs `coho`, and uninstalls it on every
+  build. Releases also carry `coho-<version>-winget-manifests.zip`, the manifests for
+  submitting `CohoCMS.CLI` to winget.
+- Signing for `coho.exe` and the MSI through Azure Artifact Signing, which turns on when
+  the repository variable `WINDOWS_SIGNING` is `true`. Until then both are unsigned.
+- `coho.exe` carries the Coho icon.
+
 ## [2026.2.4] — 2026-11-10
 
 ### Added

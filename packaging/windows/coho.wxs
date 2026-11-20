@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Coho CLI's Windows installer: the PyInstaller folder in Program Files\Coho CLI, with
+  that folder on the system PATH so `coho` works in any new terminal. Per machine, so it
+  asks for elevation once; uninstalling removes both the folder and the PATH entry.
+
+  Built with WiX v7 by build.ps1, which passes every variable below (it derives them from
+  the version with msi_version.py):
+
+    BinDir          the frozen folder, holding coho.exe and _internal\
+    Version         the coho-cli version, 2026.2.4rc1
+    ProductVersion  Windows Installer's form of it, 26.2.4.501
+    ProductCode     a GUID of its own per version
+    UpgradeCode     the same GUID for every Coho CLI MSI, ever
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Coho CLI"
+    Manufacturer="Coho"
+    Version="$(var.ProductVersion)"
+    ProductCode="$(var.ProductCode)"
+    UpgradeCode="$(var.UpgradeCode)"
+    Language="1033"
+    Scope="perMachine">
+
+    <SummaryInformation Description="The coho command, $(var.Version)" />
+
+    <!--
+      Same-version upgrades: Windows Installer ignores the fourth version field, so to it
+      2026.2.4rc1 (26.2.4.501) and 2026.2.4 (26.2.4) are one version, and without this the
+      final would install beside its release candidate instead of replacing it.
+    -->
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="A newer Coho CLI is already installed. Uninstall it from Settings, Apps, first to install this version." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="coho.ico" SourceFile="$(sys.SOURCEFILEDIR)coho.ico" />
+    <Property Id="ARPPRODUCTICON" Value="coho.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/coho-cms/coho-cli" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/coho-cms/coho-cli/tree/HEAD/docs" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/coho-cms/coho-cli/releases" />
+    <!-- One feature and nothing to choose, so Apps & features offers no Modify. -->
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Coho CLI" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="Coho CLI">
+      <!-- Everything PyInstaller made: coho.exe at the top, its Python under _internal. -->
+      <Files Directory="INSTALLFOLDER" Include="$(var.BinDir)\**" />
+
+      <!--
+        INSTALLFOLDER on the system PATH. Only coho.exe sits at its top level, so nothing
+        else becomes a command. The registry value is the component's key path, which a
+        component without files needs; it also tells scripts where the CLI is.
+      -->
+      <Component Id="PathEntry" Directory="INSTALLFOLDER" Guid="464A6778-DC76-400A-99A4-0E7374D46944">
+        <RegistryValue
+          Root="HKLM"
+          Key="Software\Coho\CLI"
+          Name="InstallFolder"
+          Type="string"
+          Value="[INSTALLFOLDER]"
+          KeyPath="yes" />
+        <Environment
+          Id="PathEntry"
+          Name="PATH"
+          Value="[INSTALLFOLDER]"
+          Action="set"
+          Part="last"
+          System="yes"
+          Permanent="no" />
+      </Component>
+    </Feature>
+  </Package>
+</Wix>

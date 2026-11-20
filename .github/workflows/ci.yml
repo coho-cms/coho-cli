@@ -84,6 +84,9 @@ jobs:
     name: build distributions
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      # The wheel's version, 2026.2.4 or 2026.2.5a1.dev3: what every package is named for.
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -116,6 +119,10 @@ jobs:
       - name: Build the wheel and the sdist
         run: uv build --out-dir dist
 
+      - name: Read the version
+        id: version
+        run: echo "version=$(basename dist/*.whl | cut -d- -f2)" >> "$GITHUB_OUTPUT"
+
       - name: Refuse a tag that is not a version in its standard form
         # The version comes from the tag less its `release-v`, normalized to PEP 440:
         # `release-v2026.1.0-rc.1`
@@ -146,7 +153,8 @@ jobs:
 
   binaries:
     # A standalone `coho` per platform, frozen with PyInstaller: its own Python and every
-    # dependency, for people who have no Python. Unsigned for now.
+    # dependency, for people who have no Python. macOS is archived here, unsigned; the
+    # Windows folder goes on to a windows-installer job, which signs it on a release.
     name: binary · ${{ matrix.target }}
     needs: build
     runs-on: ${{ matrix.os }}
@@ -200,39 +208,184 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Archive
+        if: runner.os != 'Windows'
         run: |
-          name="coho-$VERSION-${{ matrix.target }}"
-          if [ "$RUNNER_OS" = Windows ]; then
-            (cd bin-dist && 7z a -tzip "../$name.zip" coho > /dev/null)
-          else
-            tar -C bin-dist -czf "$name.tar.gz" coho
-          fi
+          tar -C bin-dist -czf "coho-$VERSION-${{ matrix.target }}.tar.gz" coho
           ls -l coho-*
 
       - name: Upload the binary
+        if: runner.os != 'Windows'
         uses: actions/upload-artifact@v7
         with:
           name: coho-binary-${{ matrix.target }}
+          path: coho-*.tar.gz
+          if-no-files-found: error
+          retention-days: 90
+
+      # The frozen folder itself, for the windows-installer jobs to sign and package. Not a
+      # release asset: its name keeps it out of the release job's `coho-*` pattern.
+      - name: Upload the frozen folder
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: frozen-${{ matrix.target }}
+          path: bin-dist/coho
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-installer:
+    # The zip and the MSI, unsigned: every push and pull request, and a release tag while
+    # signing is off. Installs the MSI, runs `coho`, and uninstalls it again.
+    name: windows installer · unsigned
+    if: ${{ !(startsWith(github.ref, 'refs/tags/release-v') && vars.WINDOWS_SIGNING == 'true') }}
+    needs: [build, binaries]
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: packaging
+
+      - name: Download the frozen folder
+        uses: actions/download-artifact@v8
+        with:
+          name: frozen-windows-x64
+          path: frozen/coho
+
+      - name: Build the zip and the MSI
+        run: ./packaging/windows/build.ps1 -Version $env:VERSION -Frozen frozen/coho -OutDir out
+
+      - name: Install, run, and uninstall
+        run: ./packaging/windows/test-install.ps1 -Msi "out/coho-$env:VERSION-windows-x64.msi" -Version $env:VERSION
+
+      - name: Upload the zip and the MSI
+        uses: actions/upload-artifact@v7
+        with:
+          name: coho-binary-windows-x64
           path: |
-            coho-*.tar.gz
-            coho-*.zip
+            out/*.zip
+            out/*.msi
+          if-no-files-found: error
+          retention-days: 90
+
+  windows-installer-signed:
+    # The same as windows-installer, with coho.exe signed before it is packaged and the MSI
+    # signed after, by Azure Artifact Signing. Release tags only, once the repository
+    # variable WINDOWS_SIGNING is "true"; CONTRIBUTING.md has the Azure setup. Exactly one
+    # of the two jobs runs, and both upload coho-binary-windows-x64.
+    name: windows installer · signed
+    if: startsWith(github.ref, 'refs/tags/release-v') && vars.WINDOWS_SIGNING == 'true'
+    needs: [build, binaries]
+    runs-on: windows-latest
+    # The environment holds the Azure identity and only release-v* tags may use it, so a
+    # branch cannot sign with Coho's name.
+    environment: windows-signing
+    permissions:
+      contents: read
+      id-token: write # OIDC: azure/login exchanges it for a token, no client secret stored
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: packaging
+
+      - name: Download the frozen folder
+        uses: actions/download-artifact@v8
+        with:
+          name: frozen-windows-x64
+          path: frozen/coho
+
+      - name: Sign in to Azure
+        uses: azure/login@v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign coho.exe
+        uses: azure/artifact-signing-action@v2.0.0
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\frozen\coho\coho.exe
+          description: Coho CLI
+          description-url: https://github.com/coho-cms/coho-cli
+
+      - name: Build the zip and the MSI
+        run: ./packaging/windows/build.ps1 -Version $env:VERSION -Frozen frozen/coho -OutDir out
+
+      - name: Sign the MSI
+        uses: azure/artifact-signing-action@v2.0.0
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\out\coho-${{ env.VERSION }}-windows-x64.msi
+          description: Coho CLI
+          description-url: https://github.com/coho-cms/coho-cli
+
+      - name: Check the signatures
+        run: |
+          foreach ($file in "frozen/coho/coho.exe", "out/coho-$env:VERSION-windows-x64.msi") {
+            $signature = Get-AuthenticodeSignature $file
+            Write-Host "$file`: $($signature.Status), $($signature.SignerCertificate.Subject)"
+            if ($signature.Status -ne 'Valid') { throw "$file is not validly signed" }
+          }
+
+      - name: Install, run, and uninstall
+        run: ./packaging/windows/test-install.ps1 -Msi "out/coho-$env:VERSION-windows-x64.msi" -Version $env:VERSION
+
+      - name: Upload the zip and the MSI
+        uses: actions/upload-artifact@v7
+        with:
+          name: coho-binary-windows-x64
+          path: |
+            out/*.zip
+            out/*.msi
           if-no-files-found: error
           retention-days: 90
 
   release:
     name: attach to the GitHub release
-    if: startsWith(github.ref, 'refs/tags/release-v')
-    needs: [build, binaries]
+    # One of the two windows-installer jobs is always skipped, and a skipped need skips
+    # this job too unless the condition says otherwise: run when nothing failed.
+    if: startsWith(github.ref, 'refs/tags/release-v') && !cancelled() && !failure()
+    needs: [build, binaries, windows-installer, windows-installer-signed]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
     steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: packaging
+
       - name: Download the distributions and the binaries
         uses: actions/download-artifact@v8
         with:
           pattern: coho-*
           path: dist
           merge-multiple: true
+
+      - name: Winget manifests
+        # For the MSI this release carries, to copy into a winget-pkgs pull request:
+        # CONTRIBUTING.md has the steps. Pre-releases get them too, but only finals go to
+        # winget.
+        run: |
+          python3 packaging/windows/winget_manifest.py "$VERSION" \
+            "dist/coho-$VERSION-windows-x64.msi" winget
+          (cd winget && zip -qr "../dist/coho-$VERSION-winget-manifests.zip" manifests)
+          cat winget/manifests/c/CohoCMS/CLI/"$VERSION"/*.installer.yaml
 
       - name: Checksums
         run: |

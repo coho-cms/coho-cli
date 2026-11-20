@@ -39,5 +39,10 @@ pyz = PYZ(a.pure)  # noqa: F821
 # UTF-8 mode: otherwise Windows writes redirected output in its ANSI code page (cp1252),
 # which cannot encode the box drawing in rich's help and tables, and `coho --help > x` dies.
 options = [("X utf8", None, "OPTION")]
-exe = EXE(pyz, a.scripts, options, exclude_binaries=True, name="coho", console=True)  # noqa: F821
+# The Coho icon on coho.exe, which Explorer and Task Manager show. Windows only: elsewhere
+# PyInstaller would want Pillow to convert it, and a bare executable shows no icon anyway.
+icon = os.path.join(SPECPATH, "..", "windows", "coho.ico") if sys.platform == "win32" else None  # noqa: F821
+exe = EXE(  # noqa: F821
+    pyz, a.scripts, options, exclude_binaries=True, name="coho", console=True, icon=icon
+)
 coll = COLLECT(exe, a.binaries, a.datas, name="coho")  # noqa: F821
