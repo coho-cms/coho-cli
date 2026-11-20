@@ -13,6 +13,9 @@ All notable changes to `coho-cli`. The format follows
   and removes both on uninstall. CI installs it, runs `coho`, and uninstalls it on every
   build. Releases also carry `coho-<version>-winget-manifests.zip`, the manifests for
   submitting `CohoCMS.CLI` to winget.
+- Each release also carries the platform files under names without the version
+  (`coho-windows-x64.msi`, `coho-windows-x64.zip`, and `coho-macos-arm64.tar.gz`), so
+  `releases/latest/download/<name>` always links to the newest final release.
 - Signing for `coho.exe` and the MSI through Azure Artifact Signing, which turns on when
   the repository variable `WINDOWS_SIGNING` is `true`. Until then both are unsigned.
 - `coho.exe` carries the Coho icon.

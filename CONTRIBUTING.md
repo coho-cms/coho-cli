@@ -124,6 +124,13 @@ the machine `PATH` and reports the right version, and uninstalls it. On a releas
 the `release` job attaches both files, plus `coho-<version>-winget-manifests.zip` from
 `winget_manifest.py`.
 
+The release job also attaches each platform file a second time without the version:
+`coho-windows-x64.msi`, `coho-windows-x64.zip`, and `coho-macos-arm64.tar.gz`. A link to
+`https://github.com/coho-cms/coho-cli/releases/latest/download/coho-windows-x64.msi`
+therefore always serves the newest final release, and the website never needs editing.
+GitHub's "latest" skips pre-releases, so a pre-release carrying the same names never
+changes what such a link serves.
+
 WiX only runs on Windows, so the MSI can only be built in CI or on a Windows machine. The
 Python halves, `msi_version.py` and `winget_manifest.py`, are tested with the rest of the
 suite in `tests/test_windows_packaging.py`.

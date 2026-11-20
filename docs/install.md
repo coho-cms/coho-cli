@@ -18,7 +18,9 @@ as a dependency. The package is `coho-cli`: `coho` on PyPI is an unrelated proje
 ## Windows, without Python
 
 Every [release](https://github.com/coho-cms/coho-cli/releases) carries a Windows installer,
-`coho-<version>-windows-x64.msi`. It brings its own Python, installs `coho` into
+`coho-<version>-windows-x64.msi`. The newest one is always at
+<https://github.com/coho-cms/coho-cli/releases/latest/download/coho-windows-x64.msi>.
+It brings its own Python, installs `coho` into
 `C:\Program Files\Coho CLI`, and puts that folder on the system `PATH`. It asks for
 administrator rights once. Open a new terminal afterwards, as one that is already open
 keeps its old `PATH`.

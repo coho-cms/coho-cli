@@ -387,6 +387,17 @@ jobs:
           (cd winget && zip -qr "../dist/coho-$VERSION-winget-manifests.zip" manifests)
           cat winget/manifests/c/CohoCMS/CLI/"$VERSION"/*.installer.yaml
 
+      - name: Copies under names without the version
+        # So a website can link to releases/latest/download/coho-windows-x64.msi and never
+        # change the link. GitHub's "latest" is the newest final release, so a pre-release
+        # carrying these too never moves what such a link serves.
+        run: |
+          cd dist
+          for platform in windows-x64.msi windows-x64.zip macos-arm64.tar.gz; do
+            cp "coho-$VERSION-$platform" "coho-$platform"
+          done
+          ls -l
+
       - name: Checksums
         run: |
           cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
