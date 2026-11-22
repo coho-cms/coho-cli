@@ -24,10 +24,12 @@ is a well-formed slug too, so ``@<uuid>`` is looked up as a slug like any other.
 
 The same goes for the value of a reference field in ``--set``: ``author=@priya-shah``,
 ``tags=["@traffic","@drainage"]``, and of an asset field, where the slug is an asset's:
-``image=@culvert``, ``downloads=["@guide"]``. Only reference and asset fields, as the
-entry's content type declares them, are looked up, so a text field may still hold
-``@handle``. The server then checks the ids as it checks any: that each exists and is of
-a type, or a media type, the field allows.
+``image=@culvert``, ``downloads=["@guide"]``. A field that holds many also takes them
+as a comma list, ``tags=@traffic,@drainage``, with no JSON: a shell has nothing in it to
+mangle, where Windows PowerShell 5.1 and cmd drop the double quotes inside a JSON list.
+Only reference and asset fields, as the entry's content type declares them, are looked
+up, so a text field may still hold ``@handle``, or a comma. The server then checks the
+ids as it checks any: that each exists and is of a type, or a media type, the field allows.
 """
 
 from __future__ import annotations
@@ -143,15 +145,17 @@ def reference_ids(
     of the entry, or the asset, with that slug on ``ref``. ``type_of`` gives the entry's
     content type, and is only called, and the type only read, when some value names a
     slug: otherwise nothing is requested."""
-    if not any(_names_slug(value) for _, value in sets):
+    if not any(_names_slug(value) or _is_comma_list(value) for _, value in sets):
         return sets
     # Effective, so a field the type inherits, or takes from a trait, is found too: a
     # subtype's `author=@priya-shah` names its parent's reference field.
-    kinds = {
-        f.get("id"): f.get("type")
+    fields = [
+        f
         for f in ref.types.get(type_of(), effective=True).fields
         if isinstance(f, dict) and f.get("type") in ("reference", "asset")
-    }
+    ]
+    kinds = {f.get("id"): f.get("type") for f in fields}
+    many = {f.get("id") for f in fields if f.get("many")}
     found: dict[str, str] = {}
     assets: dict[str, str] | None = None
 
@@ -180,14 +184,22 @@ def reference_ids(
 
     out: list[tuple[str, Any]] = []
     for path, value in sets:
-        kind = kinds.get(path.split(".")[0])
+        field = path.split(".")[0]
+        kind = kinds.get(field)
         if kind is not None:
+            if field in many and isinstance(value, str):
+                # `tags=@traffic,@drainage`, or one, `tags=@traffic`: a list either way.
+                value = [v.strip() for v in value.split(",") if v.strip()]
             if isinstance(value, list):
                 value = [resolve(kind, v) for v in value]
             else:
                 value = resolve(kind, value)
         out.append((path, value))
     return out
+
+
+def _is_comma_list(value: Any) -> bool:
+    return isinstance(value, str) and "," in value
 
 
 def _names_slug(value: Any) -> bool:

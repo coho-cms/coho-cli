@@ -117,7 +117,9 @@ def create(
     set_: Annotated[
         list[str] | None,
         typer.Option(
-            "--set", help="path=value; JSON values parse, e.g. --set title.en-US=Hello --set rank=3"
+            "--set",
+            help="path=value; JSON values parse, e.g. --set title.en-US=Hello --set rank=3. "
+            "A field of many references or assets takes a comma list: tags=@traffic,@drainage",
         ),
     ] = None,
 ) -> None:
@@ -150,7 +152,11 @@ def put(
     ] = None,
     set_: Annotated[
         list[str] | None,
-        typer.Option("--set", help="path=value, applied on top of the current fields."),
+        typer.Option(
+            "--set",
+            help="path=value, applied on top of the current fields. A field of many "
+            "references or assets takes a comma list: tags=@traffic,@drainage",
+        ),
     ] = None,
     if_match: Annotated[
         str | None, typer.Option("--if-match", help="ETag from your last `entry get`.")

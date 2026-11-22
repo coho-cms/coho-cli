@@ -212,6 +212,46 @@ def test_a_reference_set_to_a_slug_is_written_as_the_id_it_names(run: Run, bff: 
     assert len(traffic) == 1  # each slug once, however often it is named
 
 
+def test_a_field_of_many_takes_a_comma_list_with_no_json(run: Run, bff: FakeBff) -> None:
+    # Windows PowerShell 5.1 and cmd drop the double quotes inside a JSON list, so a list
+    # of references can be written without any.
+    blog_post_type(bff)
+    by_slug(bff, "dev", "traffic", graph(node(TRAFFIC, "traffic", "tag")))
+    by_slug(bff, "dev", "drainage", graph(node(DRAINAGE, "drainage", "tag")))
+    run("use", "acme", PROJECT, "dev")
+    run(
+        "-o", "json", "entry", "put", ENTRY,
+        "--set", "tags=@traffic, @drainage,",
+        "--set", "title=Roads, rails and drains",
+    )  # fmt: skip
+    written = bff.last().get_json()["fields"]
+    assert written["tags"] == [TRAFFIC, DRAINAGE]
+    # Only a reference or asset field of many is split: text keeps its commas.
+    assert written["title"] == "Roads, rails and drains"
+
+
+def test_one_slug_in_a_field_of_many_is_a_list_of_one(run: Run, bff: FakeBff) -> None:
+    blog_post_type(bff)
+    by_slug(bff, "dev", "traffic", graph(node(TRAFFIC, "traffic", "tag")))
+    by_slug(bff, "dev", "priya-shah", graph(node(PRIYA, "priya-shah", "teamMember")))
+    run("use", "acme", PROJECT, "dev")
+    run(
+        "-o", "json", "entry", "put", ENTRY, "--set", "tags=@traffic", "--set", "author=@priya-shah"
+    )
+    written = bff.last().get_json()["fields"]
+    assert written["tags"] == [TRAFFIC]
+    # A field of one stays one.
+    assert written["author"] == PRIYA
+
+
+def test_a_comma_list_of_ids_needs_no_lookup(run: Run, bff: FakeBff) -> None:
+    blog_post_type(bff)
+    run("use", "acme", PROJECT, "dev")
+    run("-o", "json", "entry", "put", ENTRY, "--set", f"tags={TRAFFIC},{DRAINAGE}")
+    assert bff.last().get_json()["fields"]["tags"] == [TRAFFIC, DRAINAGE]
+    assert slug_reads(bff) == []
+
+
 def test_create_takes_a_slug_in_a_reference_field(run: Run, bff: FakeBff) -> None:
     blog_post_type(bff)
     by_slug(bff, "dev", "priya-shah", graph(node(PRIYA, "priya-shah", "teamMember")))

@@ -19,6 +19,11 @@ All notable changes to `coho-cli`. The format follows
 - Signing for `coho.exe` and the MSI through Azure Artifact Signing, which turns on when
   the repository variable `WINDOWS_SIGNING` is `true`. Until then both are unsigned.
 - `coho.exe` carries the Coho icon.
+- `--set` takes a comma list for a field of many references or assets, with no JSON:
+  `--set "tags=@traffic,@drainage"`, and `--set "tags=@traffic"` is a list of one. Windows
+  PowerShell 5.1 and cmd drop the double quotes inside `'tags=["@traffic"]'`, so the JSON
+  form failed there; the comma form is spelled the same in every shell. Text fields keep
+  their commas.
 
 ## [2026.2.4] — 2026-11-10
 

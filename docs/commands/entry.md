@@ -23,8 +23,17 @@ the same ref and written as the id it names; the server then checks the ids as i
 any. Only fields the entry's content type declares as references are looked up, so a
 text field set to `@something` keeps it as typed.
 An asset field takes an asset's slug the same way: `--set image=@culvert --set
-'downloads=["@roundabout-functionality"]'`, looked up among the ref's assets. The type is read, and slugs looked up,
-only when some `--set` value starts with `@`. Values in `--file` are written as given.
+'downloads=["@roundabout-functionality"]'`, looked up among the ref's assets.
+
+A field of many references or assets also takes a comma list, with no JSON:
+`--set "tags=@traffic,@drainage"`, or `--set "tags=@traffic"` for a list of one. It is
+the form to use on Windows: Windows PowerShell 5.1 and cmd drop the double quotes inside
+a JSON list, so `'tags=["@traffic"]'` arrives as text the server refuses. Double quotes
+around the whole value work in every shell. Only reference and asset fields are split,
+so a text field keeps its commas.
+
+The type is read, and slugs looked up, only when some `--set` value starts with `@` or
+holds a comma. Values in `--file` are written as given.
 
 ## `coho entry list [-t TYPE] [--limit N] [--offset N] [--all]`
 
