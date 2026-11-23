@@ -6,6 +6,13 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `coho login` on Windows. The tokens did not fit in Windows Credential Manager, which holds
+  1280 characters a credential, so the sign-in finished in the browser and then failed with
+  error 1783, "The stub received bad data", as a traceback. coho-management-sdk 2026.2.7
+  stores them in pieces, and this release needs it.
+
 ### Added
 
 - A Windows installer on every release, `coho-<version>-windows-x64.msi`. It installs the
