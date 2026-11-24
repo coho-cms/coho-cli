@@ -101,8 +101,23 @@ _SOURCES = {
 }
 
 
-def _who(state: State) -> dict[str, Any]:
-    """Who the credential is, and what it may do where the context points.
+def _effective_account(state: State) -> str | None:
+    """The account a command would use: the saved one, or, with none saved, a person's only
+    account, as `State.account` picks it. None when that takes a choice, or can't be had."""
+    saved = state.context.account
+    if saved:
+        return saved
+    try:
+        if state.coho.credential_source is None or state.coho.uses_project_token:
+            return None
+        memberships = state.coho.accounts()
+    except (CohoError, Usage):
+        return None
+    return memberships[0].account_id if len(memberships) == 1 else None
+
+
+def _who(state: State, account: str | None) -> dict[str, Any]:
+    """Who the credential is, and what it may do in ``account`` and where the context points.
 
     Every lookup is best effort: signed out, offline, or a context the credential cannot
     see leaves the field None rather than failing `status`, which must always answer.
@@ -149,16 +164,16 @@ def _who(state: State) -> dict[str, Any]:
         return out
     cred |= {"user": me.user_id, "name": me.display_name, "email": me.email}
     out["credential"] = cred
-    if not c.account:
+    if not account:
         return out
-    membership = me.membership(c.account)
+    membership = me.membership(account)
     if membership is None:
         return out
     out["accountRole"] = membership.role
     if c.project:
         try:
             summary = next(
-                (p for p in state.coho.account(c.account).projects.list() if p.id == c.project),
+                (p for p in state.coho.account(account).projects.list() if p.id == c.project),
                 None,
             )
         except (CohoError, Usage):
@@ -219,16 +234,19 @@ def status(ctx: typer.Context) -> None:
     state = get_state(ctx)
     profile = state.profile
     c = state.context
-    project_name = profile.project_name(c.account, c.project) if c.account and c.project else None
-    account_name = _account_name(state, c.account) if c.account else None
-    who = _who(state)
+    # The account every command would act in, saved or not: someone in one account never has
+    # to name it, and `status` says which it is all the same.
+    account = _effective_account(state)
+    project_name = profile.project_name(account, c.project) if account and c.project else None
+    account_name = _account_name(state, account) if account else None
+    who = _who(state, account)
     record(
         state,
         {
             "profile": profile.name,
             "url": state.config.effective_url(profile),
             "credential": who["credential"],
-            "account": c.account,
+            "account": account,
             "accountName": account_name,
             "accountRole": who["accountRole"],
             "project": c.project,
@@ -241,7 +259,7 @@ def status(ctx: typer.Context) -> None:
             ("profile", profile.name),
             ("url", state.config.effective_url(profile) or None),
             ("credential", _credential_line(who["credential"])),
-            ("account", f"{account_name} ({c.account})" if account_name else c.account),
+            ("account", f"{account_name} ({account})" if account_name else account),
             ("account role", who["accountRole"]),
             ("project", f"{project_name}  ({c.project})" if project_name else c.project),
             ("project role", _project_role_line(who)),
@@ -249,5 +267,5 @@ def status(ctx: typer.Context) -> None:
             ("permissions", _permissions_line(who)),
         ],
     )
-    if state.output != "json" and not c.account:
+    if state.output != "json" and not (account and c.project):
         console.print("[dim]Set a context with `coho use <account> [<project> [<ref>]]`.[/dim]")

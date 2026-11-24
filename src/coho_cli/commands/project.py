@@ -29,6 +29,9 @@ def create(
     info = project.info()
     state.profile.remember_project(acct.id, info.name, info.id)
     if use:
+        # The account too, though a person in one account never needs it named: a project
+        # saved without its account leaves `status` unable to say where it is.
+        state.profile.context.account = acct.id
         state.profile.context.project = info.id
         state.profile.context.ref = info.trunk
     state.save()

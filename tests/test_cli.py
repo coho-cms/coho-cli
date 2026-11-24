@@ -307,6 +307,31 @@ def test_project_create_sets_context_and_registry(run: Run, home: Path) -> None:
     assert "Marketing site" in out and PROJECT in out
 
 
+def test_project_create_saves_the_account_it_was_created_in(run: Run, home: Path) -> None:
+    """Someone in one account never names it, so nothing else would save it, and `status`
+    could not say where the project is."""
+    run("project", "create", "Marketing site")
+    cfg = Config.load(home / "config.toml").profile("test")
+    assert (cfg.context.account, cfg.context.project) == (ACCOUNT, PROJECT)
+
+
+def test_status_names_the_only_account_when_none_was_saved(run: Run, home: Path) -> None:
+    """A context saved by `project create` before 2026.2.8 has a project and no account."""
+    run("use", "acme", PROJECT, "dev")
+    cfg = Config.load(home / "config.toml")
+    cfg.profile("test").context.account = None
+    cfg.save()
+
+    body = json.loads(run("-o", "json", "status")[0])
+    assert body["account"] == ACCOUNT and body["accountName"] == "Acme"
+    assert body["accountRole"] == "admin" and body["projectRole"] == "owner"
+    out, _ = run("status")
+    assert f"account Acme ({ACCOUNT})" in " ".join(out.split())
+    assert "coho use" not in out
+    # Saying so changes nothing: status only reads.
+    assert Config.load(home / "config.toml").profile("test").context.account is None
+
+
 def test_project_rename_replaces_the_old_name_in_the_registry(run: Run, home: Path) -> None:
     run("use", "acme", PROJECT, "dev")
     out, _ = run("project", "rename", "Brand site")

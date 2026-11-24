@@ -8,6 +8,11 @@ All notable changes to `coho-cli`. The format follows
 
 ### Fixed
 
+- `coho status` showed `account -`, with no roles or permissions, after `coho project create`
+  in a profile with no account chosen, as for anyone in one account. `project create` saved
+  the new project as the current one but not its account. It now saves both, and `status`
+  names the account every command would use: the saved one, or your only account when none is
+  saved. A context saved by an earlier release reads right without changing it.
 - `coho login` on Windows. The tokens did not fit in Windows Credential Manager, which holds
   1280 characters a credential, so the sign-in finished in the browser and then failed with
   error 1783, "The stub received bad data", as a traceback. coho-management-sdk 2026.2.7
