@@ -75,6 +75,19 @@ taken as a string otherwise:
 --set author=0192…             # reference (a node id)
 ```
 
+`--set-file path=FILE` is `--set` with the value read from a file, as UTF-8 (a byte order
+mark is skipped): JSON when it parses, the file's text otherwise. It is for a value no
+shell passes intact, such as a list of repeater items in Windows PowerShell 5.1, which
+drops the double quotes inside an argument, and for a long text such as a markdown body:
+
+```
+--set-file citations=entries/citations/hello.json   # a JSON list of repeater items
+--set-file body.en-US=hello.md                      # the file's text
+```
+
+`@SLUG` in a reference or asset field is looked up as for `--set`. Both may be given, on
+`entry create` and `entry put`, any number of times.
+
 Refusals: `VALIDATION_FAILED` (each `errors[]` item printed as `path: message`),
 `SLUG_CONFLICT`, `BRANCH_NOT_WRITABLE` (a tag or environment), `FORBIDDEN`.
 
@@ -82,7 +95,7 @@ Refusals: `VALIDATION_FAILED` (each `errors[]` item printed as `path: message`),
 
 Two modes:
 
-- **`--set` only:** read-modify-write. Reads the entry, applies the sets, writes back
+- **`--set` or `--set-file` only:** read-modify-write. Reads the entry, applies the sets, writes back
   with the ETag it read. `VERSION_CONFLICT` (exit 4) if somebody wrote in between.
 - **`--file`:** replaces the fields wholesale. Needs `--if-match` from your last read,
   or `--force` (reads the current ETag and overwrites). Without either, the CLI stops

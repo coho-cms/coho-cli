@@ -8,6 +8,9 @@ All notable changes to `coho-cli`. The format follows
 
 ### Fixed
 
+- `--file` read a file in the locale's encoding, cp1252 on Windows, so a fields document with
+  non-ASCII text was stored garbled, and one Windows PowerShell 5.1 wrote with a byte order
+  mark was refused as not JSON. It is read as UTF-8, and a byte order mark is skipped.
 - `coho status` showed `account -`, with no roles or permissions, after `coho project create`
   in a profile with no account chosen, as for anyone in one account. `project create` saved
   the new project as the current one but not its account. It now saves both, and `status`
@@ -20,6 +23,12 @@ All notable changes to `coho-cli`. The format follows
 
 ### Added
 
+- `coho entry create` and `coho entry put` take `--set-file path=FILE`: `--set` with the value
+  read from a UTF-8 file, JSON when it parses and the file's text otherwise, with `@slug`s
+  looked up as for `--set`. Windows PowerShell 5.1 drops the double quotes inside an
+  argument, so a list of repeater items could not be set there:
+  `--set-file citations=entries\citations\roundabout-second-opinion.json` works in every
+  shell.
 - A Windows installer on every release, `coho-<version>-windows-x64.msi`. It installs the
   standalone `coho` into `C:\Program Files\Coho CLI`, adds that folder to the system `PATH`,
   and removes both on uninstall. CI installs it, runs `coho`, and uninstalls it on every

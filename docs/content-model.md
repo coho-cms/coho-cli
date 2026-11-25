@@ -102,6 +102,12 @@ type; the server fills it in when the repeater holds only one.
 coho entry put @hello --set 'citations=[{"authors": "ASCE", "year": 2022, "title": "Minimum design loads"}]'
 ```
 
+Or from a file of the list, which works in every shell, Windows PowerShell 5.1 included:
+
+```bash
+coho entry put @hello --set-file citations=citations.json
+```
+
 ### Component types
 
 A repeater's items are typed by **component types**, defined like content types with

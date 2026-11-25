@@ -23,7 +23,9 @@ def read_json(source: str | None, *, what: str = "JSON") -> Any:
         path = Path(source)
         if not path.exists():
             raise Usage(f"{what}: no such file: {source}")
-        text = path.read_text()
+        # UTF-8 whatever the locale, as JSON is: Windows would read cp1252. A byte order
+        # mark, which Windows PowerShell 5.1 writes, is skipped.
+        text = path.read_text(encoding="utf-8-sig")
     try:
         return json.loads(text)
     except ValueError as exc:
@@ -48,6 +50,29 @@ def parse_set(spec: str) -> tuple[str, Any]:
     if "=" not in spec:
         raise Usage(f"--set needs path=value, got '{spec}'")
     path, raw = spec.split("=", 1)
+    try:
+        value: Any = json.loads(raw)
+    except ValueError:
+        value = raw
+    return path.strip(), value
+
+
+def parse_set_file(spec: str) -> tuple[str, Any]:
+    """``path=FILE``: as ``--set``, with the value read from a UTF-8 file.
+
+    For a value no shell passes intact, such as a JSON list of repeater items in Windows
+    PowerShell 5.1, which drops the double quotes inside an argument.
+    """
+    if "=" not in spec:
+        raise Usage(f"--set-file needs path=FILE, got '{spec}'")
+    path, name = spec.split("=", 1)
+    file = Path(name)
+    if not file.is_file():
+        raise Usage(f"--set-file {path.strip()}: no such file: {name}")
+    try:
+        raw = file.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise Usage(f"--set-file {path.strip()}: {name} is not UTF-8 text") from exc
     try:
         value: Any = json.loads(raw)
     except ValueError:

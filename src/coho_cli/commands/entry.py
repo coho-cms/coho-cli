@@ -10,7 +10,7 @@ from coho_management_sdk.models import Entry
 
 from .._entry_ids import entry_id as resolve_entry_id
 from .._entry_ids import reference_ids
-from .._io import parse_set, read_json, set_path
+from .._io import parse_set, parse_set_file, read_json, set_path
 from .._output import console, emit_json, record, say, table
 from .._slugs import content_slug
 from .._state import At, State, Usage, get_state
@@ -122,6 +122,15 @@ def create(
             "A field of many references or assets takes a comma list: tags=@traffic,@drainage",
         ),
     ] = None,
+    set_file: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--set-file",
+            help="path=FILE: as --set, with the value read from a UTF-8 file, JSON if it "
+            "parses, else its text. For a list of repeater items, or a long value: "
+            "--set-file citations=citations.json",
+        ),
+    ] = None,
 ) -> None:
     """Create an entry from a fields document and/or --set values.
 
@@ -132,7 +141,7 @@ def create(
     """
     state = get_state(ctx)
     ref = state.ref()
-    fields = _fields(file, reference_ids(ref, lambda: type_, _parse_sets(set_)))
+    fields = _fields(file, reference_ids(ref, lambda: type_, _parse_sets(set_, set_file)))
     # A singleton's entry is given its fixed slug by the server (coho-data doc 66).
     if slug is None and not ref.types.get(type_).singleton:
         name = fields.get("_name")
@@ -156,6 +165,15 @@ def put(
             "--set",
             help="path=value, applied on top of the current fields. A field of many "
             "references or assets takes a comma list: tags=@traffic,@drainage",
+        ),
+    ] = None,
+    set_file: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--set-file",
+            help="path=FILE: as --set, with the value read from a UTF-8 file, JSON if it "
+            "parses, else its text. For a list of repeater items, or a long value: "
+            "--set-file citations=citations.json",
         ),
     ] = None,
     if_match: Annotated[
@@ -183,18 +201,18 @@ def put(
     singleton's entry keeps its fixed slug.
     """
     state = get_state(ctx)
-    if file is None and not set_ and slug is None:
-        raise Usage("nothing to write: pass --file, --set, and/or --slug")
+    if file is None and not set_ and not set_file and slug is None:
+        raise Usage("nothing to write: pass --file, --set, --set-file, and/or --slug")
     ref = state.ref()
     api = ref.entries
     entry_id = resolve_entry_id(ref, entry_id)
     if file is not None:
-        sets = reference_ids(ref, lambda: api.get(entry_id).type, _parse_sets(set_))
+        sets = reference_ids(ref, lambda: api.get(entry_id).type, _parse_sets(set_, set_file))
         fields = _fields(file, sets)
         e = api.put(entry_id, fields, if_match=if_match, force=force, slug=slug)
     else:
         current = api.get(entry_id)
-        for path, value in reference_ids(ref, lambda: current.type, _parse_sets(set_)):
+        for path, value in reference_ids(ref, lambda: current.type, _parse_sets(set_, set_file)):
             set_path(current.fields, path, value)
         e = api.put(current, if_match=if_match, slug=slug)
     _created_or_updated(state, e)
@@ -270,8 +288,8 @@ def references(ctx: typer.Context, entry_id: EntryId, at: At = None) -> None:
 # -- helpers ---------------------------------------------------------------------
 
 
-def _parse_sets(sets: list[str] | None) -> list[tuple[str, Any]]:
-    return [parse_set(spec) for spec in sets or []]
+def _parse_sets(sets: list[str] | None, files: list[str] | None = None) -> list[tuple[str, Any]]:
+    return [parse_set(spec) for spec in sets or []] + [parse_set_file(spec) for spec in files or []]
 
 
 def _fields(file: str | None, sets: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -288,7 +306,7 @@ def _fields(file: str | None, sets: list[tuple[str, Any]]) -> dict[str, Any]:
     for path, value in sets:
         set_path(fields, path, value)
     if not fields:
-        raise Usage("no fields given: pass --file and/or --set")
+        raise Usage("no fields given: pass --file, --set, and/or --set-file")
     return fields
 
 
