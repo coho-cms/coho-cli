@@ -6,20 +6,7 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
-### Fixed
-
-- `--file` read a file in the locale's encoding, cp1252 on Windows, so a fields document with
-  non-ASCII text was stored garbled, and one Windows PowerShell 5.1 wrote with a byte order
-  mark was refused as not JSON. It is read as UTF-8, and a byte order mark is skipped.
-- `coho status` showed `account -`, with no roles or permissions, after `coho project create`
-  in a profile with no account chosen, as for anyone in one account. `project create` saved
-  the new project as the current one but not its account. It now saves both, and `status`
-  names the account every command would use: the saved one, or your only account when none is
-  saved. A context saved by an earlier release reads right without changing it.
-- `coho login` on Windows. The tokens did not fit in Windows Credential Manager, which holds
-  1280 characters a credential, so the sign-in finished in the browser and then failed with
-  error 1783, "The stub received bad data", as a traceback. coho-management-sdk 2026.2.7
-  stores them in pieces, and this release needs it.
+## [2026.2.9] — 2026-11-24
 
 ### Added
 
@@ -29,6 +16,46 @@ All notable changes to `coho-cli`. The format follows
   argument, so a list of repeater items could not be set there:
   `--set-file citations=entries\citations\roundabout-second-opinion.json` works in every
   shell.
+
+### Fixed
+
+- `--file` read a file in the locale's encoding, cp1252 on Windows, so a fields document with
+  non-ASCII text was stored garbled, and one Windows PowerShell 5.1 wrote with a byte order
+  mark was refused as not JSON. It is read as UTF-8, and a byte order mark is skipped.
+
+## [2026.2.8] — 2026-11-23
+
+### Fixed
+
+- `coho status` showed `account -`, with no roles or permissions, after `coho project create`
+  in a profile with no account chosen, as for anyone in one account. `project create` saved
+  the new project as the current one but not its account. It now saves both, and `status`
+  names the account every command would use: the saved one, or your only account when none is
+  saved. A context saved by an earlier release reads right without changing it.
+
+## [2026.2.7] — 2026-11-23
+
+### Fixed
+
+- `coho login` on Windows. The tokens did not fit in Windows Credential Manager, which holds
+  1280 characters a credential, so the sign-in finished in the browser and then failed with
+  error 1783, "The stub received bad data", as a traceback. coho-management-sdk 2026.2.7
+  stores them in pieces, and this release needs it.
+
+## [2026.2.6] — 2026-11-22
+
+### Added
+
+- `--set` takes a comma list for a field of many references or assets, with no JSON:
+  `--set "tags=@traffic,@drainage"`, and `--set "tags=@traffic"` is a list of one. Windows
+  PowerShell 5.1 and cmd drop the double quotes inside `'tags=["@traffic"]'`, so the JSON
+  form failed there; the comma form is spelled the same in every shell. Text fields keep
+  their commas.
+
+## [2026.2.5] — 2026-11-22
+
+### Added
+
 - A Windows installer on every release, `coho-<version>-windows-x64.msi`. It installs the
   standalone `coho` into `C:\Program Files\Coho CLI`, adds that folder to the system `PATH`,
   and removes both on uninstall. CI installs it, runs `coho`, and uninstalls it on every
@@ -40,11 +67,6 @@ All notable changes to `coho-cli`. The format follows
 - Signing for `coho.exe` and the MSI through Azure Artifact Signing, which turns on when
   the repository variable `WINDOWS_SIGNING` is `true`. Until then both are unsigned.
 - `coho.exe` carries the Coho icon.
-- `--set` takes a comma list for a field of many references or assets, with no JSON:
-  `--set "tags=@traffic,@drainage"`, and `--set "tags=@traffic"` is a list of one. Windows
-  PowerShell 5.1 and cmd drop the double quotes inside `'tags=["@traffic"]'`, so the JSON
-  form failed there; the comma form is spelled the same in every shell. Text fields keep
-  their commas.
 
 ## [2026.2.4] — 2026-11-10
 
@@ -335,7 +357,12 @@ Initial version.
   precondition worth retrying (4) and not-found (5).
 - A local project registry, because the server has no project listing yet.
 
-[Unreleased]: https://github.com/coho-cms/coho-cli/compare/release-v2026.2.4...HEAD
+[Unreleased]: https://github.com/coho-cms/coho-cli/compare/release-v2026.2.9...HEAD
+[2026.2.9]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.9
+[2026.2.8]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.8
+[2026.2.7]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.7
+[2026.2.6]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.6
+[2026.2.5]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.5
 [2026.2.4]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.4
 [2026.2.3]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.3
 [2026.2.0]: https://github.com/coho-cms/coho-cli/releases/tag/v2026.2.0
