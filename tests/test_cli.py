@@ -1147,6 +1147,15 @@ def test_a_trait_in_use_is_not_deleted(run: Run) -> None:
     assert "Deleted trait unused." in out
 
 
+def test_type_delete_names_the_version_it_read(run: Run) -> None:
+    # Coho takes a type delete only with If-Match; the CLI sends the type's current ETag.
+    run("use", "acme", PROJECT, "dev")
+    _, err = run("-y", "type", "delete", "blogPost", expect=1)
+    assert "TYPE_IN_USE" in err
+    out, _ = run("-y", "type", "delete", "blogPost", "--confirm-destructive")
+    assert "Deleted type blogPost." in out
+
+
 def test_branch_delete_of_a_merged_branch_needs_no_second_answer(run: Run) -> None:
     run("use", "acme", PROJECT, "dev")
     out, _ = run("--yes", "branch", "delete", "feature/done")
