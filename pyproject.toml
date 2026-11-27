@@ -30,8 +30,9 @@ dependencies = [
     # skip. `<2026.3` keeps out 2026.3 and its pre-releases. 2026.2.3 has
     # branches.delete, tags.delete, refs.restore_branch and their errors, which the
     # CLI imports at startup, so an older SDK fails it on every command, and keeps
-    # out httpx 1.0, which it cannot run on.
-    "coho-management-sdk>=2026.2.7,<2026.3",
+    # out httpx 1.0, which it cannot run on. 2026.2.10 sends If-Match with a type
+    # delete, which coho type delete needs.
+    "coho-management-sdk>=2026.2.10,<2026.3",
     "typer>=0.12",
     "rich>=13.7",
     "keyring>=25",

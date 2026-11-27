@@ -6,6 +6,14 @@ All notable changes to `coho-cli`. The format follows
 
 ## [Unreleased]
 
+## [2026.2.10] — 2026-11-27
+
+### Fixed
+
+- `coho type delete` failed with `PRECONDITION_REQUIRED`, whatever the type: Coho takes a type
+  delete only with `If-Match`, and the management SDK sent none. It needs
+  coho-management-sdk 2026.2.10, which sends the type's current ETag.
+
 ## [2026.2.9] — 2026-11-24
 
 ### Added
@@ -357,7 +365,8 @@ Initial version.
   precondition worth retrying (4) and not-found (5).
 - A local project registry, because the server has no project listing yet.
 
-[Unreleased]: https://github.com/coho-cms/coho-cli/compare/release-v2026.2.9...HEAD
+[Unreleased]: https://github.com/coho-cms/coho-cli/compare/release-v2026.2.10...HEAD
+[2026.2.10]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.10
 [2026.2.9]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.9
 [2026.2.8]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.8
 [2026.2.7]: https://github.com/coho-cms/coho-cli/releases/tag/release-v2026.2.7
